@@ -1,0 +1,17 @@
+{
+    "name": "lona/database",
+    "description": "Object oriented DBMS",
+    "type": "project",
+    "license": "GNU AGPLv3",
+    "autoload": {
+        "psr-4": {
+            "LonaDB\\": "LonaDB/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Lona Devs"
+        }
+    ],
+    "require": {}
+}

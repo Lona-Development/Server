@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+php -dphar.readonly=0 build/build-phar.php
