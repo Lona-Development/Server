@@ -1,1 +1,1 @@
-cd build/debug ; php LonaDB-2.0.phar
+cd build/debug ; php LonaDB-4.0.0-beta.phar

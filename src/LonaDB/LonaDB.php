@@ -62,12 +62,14 @@ class LonaDB {
             $this->Logger->LoadLogger();
             $this->Logger->DropCache();
 
-            $this->Logger->Info("Loading Server class.");
-            $this->Server = new Server($this);
             $this->Logger->Info("Loading TableManager class.");
             $this->TableManager = new TableManager($this);
             $this->Logger->Info("Loading UserManager class.");
             $this->UserManager = new UserManager($this);
+
+            //The server has to be loaded as the last class!
+            $this->Logger->Info("Loading Server class.");
+            $this->Server = new Server($this);        
         }
         catch (\Exception $e){
             $this->Logger->Error($e);
@@ -78,7 +80,7 @@ class LonaDB {
         $this->Logger->InfoCache("Invalid or missing config. Starting setup.");
         echo "Database port:\n";
         $portHandle = fopen ("php://stdin","r");
-        $port = fgets($portHandle);
+        $port = intval(str_replace("\n", "", fgets($portHandle)));
         fclose($portHandle);
 
         echo "Database address:\n";
@@ -107,7 +109,7 @@ class LonaDB {
 
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
         $save = array(
-            "port" => str_replace("\n","",$port), 
+            "port" => $port, 
             "address" => str_replace("\n","",$addr), 
             "logging" => $log, 
             "encryptionKey" => str_replace("\n","",$key),
