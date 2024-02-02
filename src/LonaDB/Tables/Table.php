@@ -81,15 +81,25 @@ class Table{
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' is trying to get the variable '".$name."'");
         if(!$this->CheckPermission($user, "read")) return null;
 
-        return $this->data->{$name};
+        return $this->data[$name];
     }
 
     public function CheckPermission(string $user, string $permission){
         $this->LonaDB->Logger->Table("(".$this->file.") Checkin permission '".$permission."' for user '".$user."'");
 
-        if($user === $this->Owner || $this->permissions[$user]["admin"]) return true;
+        if($user === $this->Owner) return true;
+        if($this->permissions[$user]["admin"]) return true;
         if(!$this->permissions[$user][$permission]) return false;
 
+        return true;
+    }
+
+    public function CheckVariable(string $name, string $user){
+        $this->LonaDB->Logger->Table("(".$this->file.") Checkin if variable '".$name."' exists for user '".$user."'");
+        
+        if(!$this->CheckPermission($user, 'read')) return false;
+
+        if(!$this->data[$name]) return false;
         return true;
     }
 

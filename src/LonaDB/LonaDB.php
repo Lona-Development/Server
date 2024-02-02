@@ -66,8 +66,6 @@ class LonaDB {
             $this->TableManager = new TableManager($this);
             $this->Logger->Info("Loading UserManager class.");
             $this->UserManager = new UserManager($this);
-
-            //The server has to be loaded as the last class!
             $this->Logger->Info("Loading Server class.");
             $this->Server = new Server($this);        
         }

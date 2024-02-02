@@ -20,7 +20,6 @@ class TableManager{
 
         foreach (new \DirectoryIterator('data/tables') as $fileInfo) {
             if(str_ends_with($fileInfo->getFilename(), ".lona")){
-                $this->LonaDB->Logger->Load("Loading table from file '" . $fileInfo . "'");
                 $this->Tables[substr($fileInfo->getFilename(), 0, -5)] = new Table($this->LonaDB, false, $fileInfo->getFilename());
                 $counter = $counter + 1;
             }
@@ -61,6 +60,7 @@ class TableManager{
         }
         $this->Tables[$name] = new Table($this->LonaDB, true, $name, $owner);
         $this->LonaDB->Logger->Table("Table '" . $name . "' has been created");
+        return true;
     }
 
     public function DeleteTable(string $name, string $user){

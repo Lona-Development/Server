@@ -77,6 +77,10 @@ class UserManager{
         $this->Save();
     }
 
+    public function CheckPermission(string $name){
+        return true;
+    }
+
     public function Save(){
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
 
