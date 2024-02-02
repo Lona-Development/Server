@@ -43,48 +43,55 @@ class Table{
         $this->Name = $this->file;
     }
 
-    public function GetOwner(string $user = ""){
+    public function GetData() : array {
+        return $this->data;
+    }
+
+    public function GetOwner(string $user = "") : string {
         if($user === "") return $this->Owner;
 
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' is trying to get the owner name.");
-        if($this->CheckPermission($user, "read")) return;
+
         return $this->Owner;
     }
 
-    public function SetOwner(string $name, string $user){
+    public function SetOwner(string $name, string $user) : bool {
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' is trying to change the owner to '".$name."'");
-        if($user !== "root" && $user !== $this->Owner) return;
+        if($user !== "root" && $user !== $this->Owner) return false;
 
         $this->Owner = $name;
         $this->Save();
+        return true;
     }
 
-    public function Set(string $name, mixed $value, string $user){
+    public function Set(string $name, mixed $value, string $user) : bool {
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' is trying to set the variable '".$name."' to '".strval($value)."'");
-        if(!$this->CheckPermission($user, "write")) return;
+        if(!$this->CheckPermission($user, "write")) return false;
 
         $this->data[$name] = $value;
         $this->Save();
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' set the variable '".$name."' to '".strval($value)."'");
+        return true;
     }
 
-    public function Delete(string $name, string $user){
+    public function Delete(string $name, string $user) : bool {
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' is trying to delete the variable '".$name."'");
-        if(!$this->CheckPermission($user, "write")) return;
+        if(!$this->CheckPermission($user, "write")) return false;
 
         unset($this->data[$name]);
         $this->Save();
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' deleted the variable '".$name."'");
+        return true;
     }
 
-    public function Get(string $name, string $user){
+    public function Get(string $name, string $user) : mixed {
         $this->LonaDB->Logger->Table("(".$this->file.") User '".$user."' is trying to get the variable '".$name."'");
         if(!$this->CheckPermission($user, "read")) return null;
 
         return $this->data[$name];
     }
 
-    public function CheckPermission(string $user, string $permission){
+    public function CheckPermission(string $user, string $permission) : bool {
         $this->LonaDB->Logger->Table("(".$this->file.") Checkin permission '".$permission."' for user '".$user."'");
 
         if($user === $this->Owner) return true;
@@ -94,7 +101,7 @@ class Table{
         return true;
     }
 
-    public function CheckVariable(string $name, string $user){
+    public function CheckVariable(string $name, string $user) : bool {
         $this->LonaDB->Logger->Table("(".$this->file.") Checkin if variable '".$name."' exists for user '".$user."'");
         
         if(!$this->CheckPermission($user, 'read')) return false;
@@ -103,26 +110,34 @@ class Table{
         return true;
     }
 
-    public function AddPermission(string $name, string $permission, string $user){
-        if($user !== $this->Owner && !$this->permissions[$user]["admin"]) return
-        $this->LonaDB->Logger->Table("(".$this->file.") Missing permission! Adding permission '".$permission."' for user '".$name."', requested by '".$user."'");
-
-        if($user !== $this->Owner && $permission === "admin") return
-        $this->LonaDB->Logger->Table("(".$this->file.") Not the Owner! Adding permission '".$permission."' for user '".$name."', requested by '".$user."'");
+    public function AddPermission(string $name, string $permission, string $user) : bool {
+        if($user !== $this->Owner && !$this->permissions[$user]["admin"]) {
+            $this->LonaDB->Logger->Table("(".$this->file.") Missing permission! Adding permission '".$permission."' for user '".$name."', requested by '".$user."'");
+            return false;
+        }
+        if($user !== $this->Owner && $permission === "admin") {
+            $this->LonaDB->Logger->Table("(".$this->file.") Not the Owner! Adding permission '".$permission."' for user '".$name."', requested by '".$user."'");
+            return false;
+        }
 
         $this->LonaDB->Logger->Table("(".$this->file.") Adding permission '".$permission."' for user '".$name."', requested by '".$user."'");
 
         $this->permissions[$name][$permission] = true;
         $this->Save();
+        return true;
     }
 
-    public function RemovePermission(string $name, string $permission, string $user){
-        if($user !== $this->Owner && !$this->permissions[$user]["admin"]) return
-        $this->LonaDB->Logger->Table("(".$this->file.") Missing permission! Removing permission '".$permission."' for user '".$name."', requested by '".$user."'");
+    public function RemovePermission(string $name, string $permission, string $user) : bool {
+        if($user !== $this->Owner && !$this->permissions[$user]["admin"]) {
+            $this->LonaDB->Logger->Table("(".$this->file.") Missing permission! Removing permission '".$permission."' for user '".$name."', requested by '".$user."'");
+            return false;
+        }
 
-        if($user !== $this->Owner && $permission === "admin") return
-        $this->LonaDB->Logger->Table("(".$this->file.") Not the Owner! Removing permission '".$permission."' for user '".$name."', requested by '".$user."'");
-
+        if($user !== $this->Owner && $permission === "admin") {
+            $this->LonaDB->Logger->Table("(".$this->file.") Not the Owner! Removing permission '".$permission."' for user '".$name."', requested by '".$user."'");
+            return galse;
+        }
+        
         $this->LonaDB->Logger->Table("(".$this->file.") Removing permission '".$permission."' for user '".$name."', requested by '".$user."'");
 
         unset($this->permissions[$name][$permission]);

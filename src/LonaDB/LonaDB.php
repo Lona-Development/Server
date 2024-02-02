@@ -74,7 +74,7 @@ class LonaDB {
         }
     }
 
-    private function setup() {
+    private function setup() : void {
         $this->Logger->InfoCache("Invalid or missing config. Starting setup.");
         echo "Database port:\n";
         $portHandle = fopen ("php://stdin","r");

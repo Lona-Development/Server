@@ -1,6 +1,6 @@
 {
     "filename": "LonaDB",
-    "version": "4.0.0-beta",
+    "version": "4.0.0-stable",
     "path": "build",
-    "debug": true
+    "debug": false
 }

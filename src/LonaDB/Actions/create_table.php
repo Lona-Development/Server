@@ -1,9 +1,9 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $server, $fd) {
+    public function run($lona, $data, $server, $fd) : void {
         if (!$lona->UserManager->CheckPermission($data['login']['name'], "table_create")) {
-            $lona->Logger->Error("User '".$data['login']['name']."' tried to create a Table without permission");
+            $lona->Logger->Error("User '".$data['login']['name']."' tried to create a table without permission");
             $response = json_encode(["success" => false, "err" => "no_permission", "process" => $data['process']]);
             $server->send($fd, $response);
             $server->close($fd);

@@ -35,7 +35,7 @@ if(trim(strtolower($line)) === 'no' || trim(strtolower($line)) === "n"){
 $start = time();
 
 builderLog("[COMPOSER] Running 'composer install'");
-exec("cd src ; ./composer.phar install");
+exec("cd src ; printf '\n' | ./composer.phar install");
 
 if(file_exists($path."/".$filename."-".$version.".phar")){
     unlink($path."/".$filename."-".$version.".phar");
@@ -64,7 +64,7 @@ try {
     builderLog("[INFO] Phar archive created successfully");
 
     builderLog("[RUN] Generating run script");
-    file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" php -dextension=openswoole.so '.$filename.'-'.$version.'.phar');
+    file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" | php -dextension=openswoole.so '.$filename.'-'.$version.'.phar');
 
     builderLog("[RUN] Adding Permissions to run script");
     exec("chmod 777 ./build/run-phar.sh");

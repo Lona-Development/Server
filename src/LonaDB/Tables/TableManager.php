@@ -30,13 +30,14 @@ class TableManager{
         }
     }
 
-    public function GetTable(string $name){
+    public function GetTable(string $name) : mixed {
         if(!$this->Tables[$name]) return false;
         return $this->Tables[$name];
     }
 
-    public function ListTables(string $user = ""){
+    public function ListTables(string $user = "") : array {
         $tables = array();
+
         if($user !== ""){
             foreach($this->Tables as $table){
                 if($table->CheckPermission($user, "write")) array_push($tables, $table->Name);
@@ -52,7 +53,7 @@ class TableManager{
         return $tables;
     }
 
-    public function CreateTable(string $name, string $owner){
+    public function CreateTable(string $name, string $owner) : bool {
         $this->LonaDB->Logger->Table("Trying to create table '" . $name . "', owned by user '" . $owner . "'");
         if($this->Tables[$name]) {
             $this->LonaDB->Logger->Error("Table '" . $name . "' already exists");
@@ -63,18 +64,21 @@ class TableManager{
         return true;
     }
 
-    public function DeleteTable(string $name, string $user){
+    public function DeleteTable(string $name, string $user) : bool {
         $this->LonaDB->Logger->Table("Trying to delete table '" . $name . "', requested by user '" . $user . "'");
         if(!$this->Tables[$name]) {
             $this->LonaDB->Logger->Error("Table '" . $name . "' doesn't exist");
-            return;
+            return false;
         }
 
-        if($user !== $this->Tables[$name]->GetOwner()) return
-        $this->LonaDB->Logger->Table("Not the owner! Trying to delete table '" . $name . "', requested by user '" . $user . "'");
+        if($user !== $this->Tables[$name]->GetOwner()) {
+            $this->LonaDB->Logger->Table("Not the owner! Trying to delete table '" . $name . "', requested by user '" . $user . "'");
+            return false;
+        }
 
         unlink("data/".$name.".json");
         unset($this->Tables[$name]);
         $this->LonaDB->Logger->Table("Deleted table '" . $name . "', requested by user '" . $user . "'");
+        return true;
     }
 }

@@ -27,7 +27,7 @@ class Server {
         $this->startSocket();
     } 
 
-    private function loadActions() {
+    private function loadActions() : void {
         $actionFiles = scandir(__DIR__ . "/Actions/");
         foreach ($actionFiles as $file) {
             if (pathinfo($file, PATHINFO_EXTENSION) === 'php') {
@@ -38,7 +38,7 @@ class Server {
         }
     }
 
-    public function startSocket() {
+    public function startSocket() : void {
         $this->server = new TCPServer($this->address, $this->port);
 
         $this->server->on('start', function ($server)
@@ -53,7 +53,7 @@ class Server {
         $this->server->start();
     }
 
-    private function handleData(string $dataString, TCPServer $server, int $fd) {
+    private function handleData(string $dataString, TCPServer $server, int $fd) : void {
         try {
             $data = json_decode($dataString, true);
 
@@ -64,18 +64,21 @@ class Server {
             if (!$login) {
                 $response = json_encode(["success" => false, "err" => "login_error", "process" => $data['process']]);
                 $server->send($fd, $response);
+                $server->close($fd);
                 return;
             }
 
             if (!$data['process']) {
                 $response = json_encode(["success" => false, "err" => "bad_process_id", "process" => $data['process']]);
                 $server->send($fd, $response);
+                $server->close($fd);
                 return;
             }
 
             if (!$this->actions[$data['action']]) {
                 $response = json_encode(["success" => false, "err" => "action_not_found"]);
                 $server->send($fd, $response);
+                $server->close($fd);
                 return;
             }
 

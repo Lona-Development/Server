@@ -1,7 +1,7 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $server, $fd) {
+    public function run($lona, $data, $server, $fd) : void {
         if (!$data['table']['name']) {
             $response = json_encode(["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
             $server->send($fd, $response);
