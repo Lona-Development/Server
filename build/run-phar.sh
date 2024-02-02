@@ -1,1 +1,1 @@
-cd build/debug ; php LonaDB-4.0.0-beta.phar -dextension=openswoole.so
+cd build/debug ; printf "test\n" | php -dextension=openswoole.so LonaDB-4.0.0-beta.phar

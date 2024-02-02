@@ -2,5 +2,3 @@ build/run-phar.sh
 build/debug/*
 build/release/*
 src/vendor/
-Client.php
-test.php
