@@ -13,13 +13,18 @@ $filename = $config->{"filename"};
 $version = $config->{"version"};
 $branch = "debug";
 
-if($config->{"debug"}) $path = $path."/debug";
+if($config->{"debug"}) {
+    $path = $path."/debug";
+    $debug = "True";
+}
 else {
+    $debug = "False";
     $path = $path."/release";
     $branch = "release";
 }
 
-echo "[CONF] Debug=".$config->{"debug"}."\n";
+
+echo "[CONF] Debug=".$debug."\n";
 echo "[CONF] Path=".$path."\n";
 echo "[CONF] Filename=".$filename."\n";
 echo "[CONF] Version=".$version."\n";

@@ -76,7 +76,7 @@ class TableManager{
             return false;
         }
 
-        unlink("data/".$name.".json");
+        unlink("data/tables/".$name.".lona");
         unset($this->Tables[$name]);
         $this->LonaDB->Logger->Table("Deleted table '" . $name . "', requested by user '" . $user . "'");
         return true;

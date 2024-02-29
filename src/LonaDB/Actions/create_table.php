@@ -17,6 +17,13 @@ return new class {
             return;
         }
 
+        if(str_starts_with($data['table']['name'], "system.") && $data['login']['name'] !== "root"){
+            $response = json_encode(["success" => false, "err" => "not_root", "process" => $data['process']]);
+            $server->send($fd, $response);
+            $server->close($fd);
+            return;
+        }
+
         $table = $lona->TableManager->CreateTable($data['table']['name'], $data['login']['name']);
 
         if(!$table){

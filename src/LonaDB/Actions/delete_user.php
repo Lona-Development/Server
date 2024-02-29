@@ -17,7 +17,7 @@ return new class {
             return;
         }
 
-        if(!$lona->UserManager->CheckUser($data['user'])){
+        if(!$lona->UserManager->CheckUser($data['user']['name'])){
             $response = json_encode(["success" => false, "err" => "user_doesnt_exist", "process" => $data['process']]);
             $server->send($fd, $response);
             $server->close($fd);

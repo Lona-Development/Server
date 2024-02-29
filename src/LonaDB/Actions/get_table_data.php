@@ -16,9 +16,9 @@ return new class {
             return;
         }
 
-        $tableData = $lona->TableManager->GetData();
+        $tableData = $lona->TableManager->getTable($data['table'])->GetData();
 
-        if($tableData === []) $response = '{ "success": true, "data": {}, "process": "'.$data['process'].' }';
+        if($tableData === []) $response = '{ "success": true, "data": {}, "process": "'.$data['process'].'" }';
         else $response = json_encode(["success" => true, "data" => $tableData, "process" => $data['process']]);
         $server->send($fd, $response);
         $server->close($fd);

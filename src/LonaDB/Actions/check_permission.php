@@ -17,7 +17,7 @@ return new class {
             return;
         }
 
-        $permission = $lona->UserManager->CheckPermission($data['permission']['user'], $data['permission']['name']);
+        $permission = $lona->UserManager->CheckPermission($data['permission']['user'], $data['permission']['name'], $data['login']['name']);
 
         $response = json_encode(["success" => true, "result" => $permission, "process" => $data['process']]);
         $server->send($fd, $response);

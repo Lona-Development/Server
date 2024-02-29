@@ -31,11 +31,9 @@ class UserManager{
     }
 
     public function CheckPassword(string $name, string $password) : bool {
-        $this->LonaDB->Logger->User("Trying to check password for user '" . $name . "'");
         if($name === "root" && $password === $this->LonaDB->config["root"]) return true;
 
         if(!$this->Users[$name]) {
-            $this->LonaDB->Logger->User("User '".$name."'doesn't exist");
             return false;
         }
 
@@ -57,7 +55,7 @@ class UserManager{
             array_push($users, $name);
         }
 
-        return users;
+        return $users;
     }
 
     public function CreateUser(string $name, string $password) : bool {
@@ -69,7 +67,7 @@ class UserManager{
         }
 
         $this->Users[$name] = array(
-            "role" => "user",
+            "role" => "User",
             "password" => $password,
             "permissions" => [
                 "default" => true
@@ -97,12 +95,47 @@ class UserManager{
         return true;
     }
 
+    public function GetRole(string $name) : string {
+        if($name === "root") return "Superuser";
+        if(!$this->CheckUser($name)) return "";
+
+        return $this->Users[$name]['role'];
+    }
+
     public function CheckPermission(string $name, string $permission, string $user = "") : bool {
+        if(!$this->CheckUser($name)) return false;
+        if($this->GetRole($name) === "Administrator" || $this->GetRole($name) === "Superuser") return true;
+
+        if(!$this->Users[$name]['permissions'][$permission]) return false;
+
         return true;
     }
 
     public function GetPermissions(string $name) : array {
+        if($name === "root") return [];
         return $this->Users[$name]['permissions'];
+    }
+
+    public function AddPermission(string $name, string $permission) : bool {
+        if($name === "root") return false;
+        if(!$this->CheckUser($name)) return false;
+
+        $this->Users[$name]['permissions'][$permission] = true;
+        $this->LonaDB->Logger->User("Added permission '" . $permission . "' to user '" . $name . "'");
+        
+        $this->Save();
+        return true;
+    }
+
+    public function RemovePermission(string $name, string $permission) : bool {
+        if($name === "root") return false;
+        if(!$this->CheckUser($name)) return false;
+
+        unset($this->Users[$name]['permissions'][$permission]);
+        $this->LonaDB->Logger->User("Removed permission '" . $permission . "' from user '" . $name . "'");
+        
+        $this->Save();
+        return true;
     }
 
     public function Save() : void {
