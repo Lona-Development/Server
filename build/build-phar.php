@@ -69,7 +69,7 @@ try {
     builderLog("[INFO] Phar archive created successfully");
 
     builderLog("[RUN] Generating run script");
-    file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" | php -dextension=openswoole.so '.$filename.'-'.$version.'.phar');
+    file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" | php -dextension=openswoole.so -dphar.readonly=0 '.$filename.'-'.$version.'.phar');
 
     builderLog("[RUN] Adding Permissions to run script");
     exec("chmod 777 ./build/run-phar.sh");

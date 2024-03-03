@@ -50,7 +50,16 @@ class Server {
             $this->handleData($data, $server, $fd);
         });
 
-        $this->server->start();
+        try{
+            $this->server->start();
+        }
+        catch(e){
+            $this->LonaDB->Logger->Error(e);
+        }
+    }
+
+    public function Stop() : void {
+        $this->server->stop();
     }
 
     private function handleData(string $dataString, TCPServer $server, int $fd) : void {

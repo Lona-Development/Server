@@ -146,7 +146,7 @@ class Table{
         $this->Save();
     }
 
-    private function Save(){
+    private function Save() : void {
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
         $save = array(
             "data" => $this->data,

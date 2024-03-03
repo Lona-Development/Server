@@ -9,25 +9,23 @@ use LonaDB\Server;
 use LonaDB\Logger;
 use LonaDB\Tables\TableManager;
 use LonaDB\Users\UserManager;
+use LonaDB\Functions\FunctionManager;
+use LonaDB\Plugins\PluginManager;
 
 class LonaDB {
     public array $config;
+    private bool $Running = true;
     public string $EncryptionKey;
 
     public Logger $Logger;
     public Server $Server;
     public TableManager $TableManager;
     public UserManager $UserManager;
+    public FunctionManager $FunctionManager;
+    public PluginManager $PluginManager;
 
-    public function __construct() {
-        echo "Encryption key:\n";
-        $keyHandle = fopen ("php://stdin","r");
-        $key = fgets($keyHandle);
-        fclose($keyHandle);
-
-        $this->EncryptionKey = str_replace("\n","",$key);
-        unset($key);
-
+    public function __construct(string $key) {
+        $this->EncryptionKey = $key;
         $this->Logger = new Logger($this);
         
         try{
@@ -36,7 +34,6 @@ class LonaDB {
 
             $this->Logger->InfoCache("Looking for config.");
 
-            //somehow file_exists() always retuns false for me... But this checks if the file did exist in the first place.
             file_put_contents("configuration.lona", file_get_contents("configuration.lona"));
             if(file_get_contents("configuration.lona") === "") $this->setup();
 
@@ -66,11 +63,55 @@ class LonaDB {
             $this->TableManager = new TableManager($this);
             $this->Logger->Info("Loading UserManager class.");
             $this->UserManager = new UserManager($this);
-            $this->Logger->Info("Loading Server class.");
-            $this->Server = new Server($this);        
+            $this->Logger->Info("Loading FunctionManager class.");
+            $this->FunctionManager = new FunctionManager($this);
+
+            $this->Logger->Info("Loading PluginManager class.");
+            $this->PluginManager = new PluginManager($this);
+            
+            $pid = @ pcntl_fork();
+            if( $pid == -1 ) {
+                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+            }
+            if( $pid ) {
+                // parent 
+                $this->pid = $pid;
+            }
+            else {
+                $this->PluginManager->LoadPlugins();
+            }
+
+            $serverpid = @ pcntl_fork();
+            if( $serverpid == -1 ) {
+                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+            }
+            if( $serverpid ) {
+                // parent 
+                $this->serverpid = $serverpid;
+            }
+            else {
+                $this->Logger->Info("Loading Server class.");
+                $this->Server = new Server($this); 
+            }
+
+            while($this->Running){
+
+            }
         }
         catch (\Exception $e){
             $this->Logger->Error($e);
+        }
+    }
+
+    private function Load() : void {
+        $pid = @ pcntl_fork();
+        if( $pid == -1 ) {
+            throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+        }
+        if( $pid ) {
+            $this->pid = $pid;
+        }
+        else {
         }
     }
 
@@ -117,6 +158,21 @@ class LonaDB {
         $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->EncryptionKey, 0, $iv);
         file_put_contents("./configuration.lona", $encrypted.":".base64_encode($iv));
     }
+    
+    public function Stop() : void {
+        posix_kill( $this->pid, SIGKILL );
+        posix_kill( $this->serverpid, SIGKILL );
+        $this->Running = false;
+    }
 }
 
-$run = new LonaDB();
+
+echo "Encryption key:\n";
+$keyHandle = fopen ("php://stdin","r");
+$key = fgets($keyHandle);
+fclose($keyHandle);
+
+$encryptionKey = str_replace("\n","",$key);
+unset($key);
+
+$run = new LonaDB($encryptionKey);
