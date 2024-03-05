@@ -18,6 +18,10 @@ class Server {
     
     public function __construct(LonaDB $lonaDB) {
         $this->LonaDB = $lonaDB;
+
+        if($this->LonaDB->Running) return;
+
+        $this->LonaDB->Running = true;
         $this->config = $lonaDB->config;
 
         $this->address = $this->config["address"];
@@ -51,13 +55,14 @@ class Server {
         });
 
         try{
+            $this->LonaDB->LoadPlugins();
             $this->server->start();
         }
         catch(e){
             $this->LonaDB->Logger->Error(e);
         }
     }
-
+    
     public function Stop() : void {
         $this->server->stop();
     }

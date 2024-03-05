@@ -14,7 +14,7 @@ use LonaDB\Plugins\PluginManager;
 
 class LonaDB {
     public array $config;
-    private bool $Running = true;
+    public bool $Running = false;
     public string $EncryptionKey;
 
     public Logger $Logger;
@@ -27,6 +27,7 @@ class LonaDB {
     public function __construct(string $key) {
         $this->EncryptionKey = $key;
         $this->Logger = new Logger($this);
+        $run = false;
         
         try{
             echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
@@ -42,60 +43,36 @@ class LonaDB {
                 $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->EncryptionKey, 0, base64_decode($parts[1]));
                 if(!json_decode($decrypted, true)) {
                     echo "Encryption Key does not match the existing Configuration file. Exiting.\n";
-                    exit;
+                }else $run = true;
+            }
+
+            if($run){
+                $this->Logger->InfoCache("Loading config.");
+                $parts = explode(':', file_get_contents("./configuration.lona"));
+                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->EncryptionKey, 0, base64_decode($parts[1]));
+                $this->config = json_decode($decrypted, true);
+
+                $this->Logger->InfoCache("Checking config.");
+                if(!$this->config["port"] || !$this->config["address"] || !$this->config["encryptionKey"] || !$this->config["root"]) {
+                    $this->setup();
                 }
-            }
 
-            $this->Logger->InfoCache("Loading config.");
-            $parts = explode(':', file_get_contents("./configuration.lona"));
-            $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->EncryptionKey, 0, base64_decode($parts[1]));
-            $this->config = json_decode($decrypted, true);
+                $this->Logger->LoadLogger();
+                $this->Logger->DropCache();
 
-            $this->Logger->InfoCache("Checking config.");
-            if(!$this->config["port"] || !$this->config["address"] || !$this->config["encryptionKey"] || !$this->config["root"]) {
-                $this->setup();
-            }
+                $this->Logger->Info("Loading TableManager class.");
+                $this->TableManager = new TableManager($this);
+                $this->Logger->Info("Loading UserManager class.");
+                $this->UserManager = new UserManager($this);
+                $this->Logger->Info("Loading FunctionManager class.");
+                $this->FunctionManager = new FunctionManager($this);
+                $this->Logger->Info("Loading PluginManager class.");
+                $this->PluginManager = new PluginManager($this);
 
-            $this->Logger->LoadLogger();
-            $this->Logger->DropCache();
-
-            $this->Logger->Info("Loading TableManager class.");
-            $this->TableManager = new TableManager($this);
-            $this->Logger->Info("Loading UserManager class.");
-            $this->UserManager = new UserManager($this);
-            $this->Logger->Info("Loading FunctionManager class.");
-            $this->FunctionManager = new FunctionManager($this);
-
-            $this->Logger->Info("Loading PluginManager class.");
-            $this->PluginManager = new PluginManager($this);
-            
-            $pid = @ pcntl_fork();
-            if( $pid == -1 ) {
-                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
-            }
-            if( $pid ) {
-                // parent 
-                $this->pid = $pid;
-            }
-            else {
-                $this->PluginManager->LoadPlugins();
-            }
-
-            $serverpid = @ pcntl_fork();
-            if( $serverpid == -1 ) {
-                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
-            }
-            if( $serverpid ) {
-                // parent 
-                $this->serverpid = $serverpid;
-            }
-            else {
-                $this->Logger->Info("Loading Server class.");
-                $this->Server = new Server($this); 
-            }
-
-            while($this->Running){
-
+                if(!$this->Running){
+                    $this->Logger->Info("Loading Server class.");
+                    $this->Server = new Server($this);
+                } 
             }
         }
         catch (\Exception $e){
@@ -103,15 +80,19 @@ class LonaDB {
         }
     }
 
-    private function Load() : void {
+    public function LoadPlugins() : void {
+        if($this->PluginManager->Loaded) return;
+
         $pid = @ pcntl_fork();
         if( $pid == -1 ) {
             throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
         }
         if( $pid ) {
+            // parent 
             $this->pid = $pid;
         }
         else {
+            $this->PluginManager->LoadPlugins();
         }
     }
 
@@ -160,9 +141,12 @@ class LonaDB {
     }
     
     public function Stop() : void {
+        echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
+        echo "[Shutdown]\n";
+        echo "Killing threads...\n";
         posix_kill( $this->pid, SIGKILL );
-        posix_kill( $this->serverpid, SIGKILL );
-        $this->Running = false;
+        $this->Server->Stop();
+        echo "Done!\n";
     }
 }
 

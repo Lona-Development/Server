@@ -9,6 +9,7 @@ class PluginManager{
     private LonaDB $LonaDB;
     private array $Plugins;
     private array $EnabledPlugins;
+    public bool $Loaded = false;
 
     public function __construct(LonaDB $lonaDB) {
         $this->LonaDB = $lonaDB;
@@ -16,6 +17,7 @@ class PluginManager{
     }
 
     public function LoadPlugins () : void {
+        $this->Loaded = true;
         if(!is_dir("plugins/")) mkdir("plugins/");
 
         $results = scandir("plugins/");
