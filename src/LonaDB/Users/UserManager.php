@@ -30,7 +30,7 @@ class UserManager{
         $this->Users = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->LonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
     }
 
-    public function CheckPassword(string $name, string $password) : bool {
+    public function CheckPassword(string $name = "", string $password = "") : bool {
         if($name === "root" && $password === $this->LonaDB->config["root"]) return true;
 
         if(!$this->Users[$name]) {
@@ -52,7 +52,7 @@ class UserManager{
         $users = [];
 
         foreach($this->Users as $name => $user){
-            array_push($users, $name);
+            $users[$name] = $this->GetRole($name);
         }
 
         return $users;
@@ -91,6 +91,15 @@ class UserManager{
 
         unset($this->Users[$name]);
         $this->LonaDB->Logger->User("Deleted user '" . $name . "'");
+        $this->Save();
+        return true;
+    }
+
+    public function SetRole(string $name, string $role) : bool {
+        if($name === "root") return false;
+        if(!$this->CheckUser($name)) return false;
+        
+        $this->Users[$name]['role'] = $role;
         $this->Save();
         return true;
     }

@@ -39,9 +39,9 @@ class PluginManager{
                         try{
                             $this->load_classphp($path, $phar);
     
-                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "();");
+                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name']);");
 
-                            $this->Plugins[$conf['name']]->onEnable($this->LonaDB);
+                            $this->Plugins[$conf['name']]->onEnable();
                         }
                         catch(e){
                             $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
@@ -76,9 +76,9 @@ class PluginManager{
                                 $phar->stopBuffering();
                             }
 
-                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "();");
+                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name']);");
 
-                            $this->Plugins[$conf['name']]->onEnable($this->LonaDB);
+                            $this->Plugins[$conf['name']]->onEnable();
                         }
                         catch(e){
                             $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
