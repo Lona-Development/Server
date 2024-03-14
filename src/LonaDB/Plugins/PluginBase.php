@@ -26,5 +26,5 @@ class PluginBase{
 
     final public function GetName() : string { return $this->Name; }
 
-    final private function GetLogger() : Logger { return $this->LonaDB->Logger; } 
+    final public function GetLogger() : Logger { return $this->LonaDB->Logger; } 
 }

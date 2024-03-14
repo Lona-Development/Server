@@ -1,1 +1,1 @@
-cd build/release ; printf "test\n" | php -dextension=openswoole.so -dphar.readonly=0 LonaDB-4.3.1-stable.phar
+cd build/release ; printf "test\n" | php -dphar.readonly=0 LonaDB-4.5.0-stable.phar

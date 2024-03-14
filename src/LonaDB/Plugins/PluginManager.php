@@ -10,6 +10,7 @@ class PluginManager{
     private array $Plugins;
     private array $EnabledPlugins;
     public bool $Loaded = false;
+    private array $pids;
 
     public function __construct(LonaDB $lonaDB) {
         $this->LonaDB = $lonaDB;
@@ -41,7 +42,16 @@ class PluginManager{
     
                             eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name']);");
 
-                            $this->Plugins[$conf['name']]->onEnable();
+                            $pid = @ pcntl_fork();
+                            if( $pid == -1 ) {
+                                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+                            }
+                            if( $pid ) {
+                                $this->pids[$conf['name']] = $pid;
+                            }
+                            else {
+                                $this->Plugins[$conf['name']]->onEnable();
+                            }
                         }
                         catch(e){
                             $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
@@ -78,7 +88,16 @@ class PluginManager{
 
                             eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name']);");
 
-                            $this->Plugins[$conf['name']]->onEnable();
+                            $pid = @ pcntl_fork();
+                            if( $pid == -1 ) {
+                                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+                            }
+                            if( $pid ) {
+                                $this->pids[$conf['name']] = $pid;
+                            }
+                            else {
+                                $this->Plugins[$conf['name']]->onEnable();
+                            }
                         }
                         catch(e){
                             $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
@@ -91,6 +110,14 @@ class PluginManager{
                 }
             }
         }
+    }
+
+    public function KillThreads() : void {
+        foreach($pid as $this->pids) {
+            posix_kill( $pid, SIGKILL );
+        }
+
+        $this->LonaDB->Logger->Info("Plugin threads have been killed");
     }
 
     public function GetPlugin(string $name) : mixed {

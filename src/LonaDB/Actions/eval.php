@@ -4,36 +4,48 @@ require 'vendor/autoload.php';
 use LonaDB\LonaDB;
 
 return new class {
-    public function run($LonaDB, $data, $server, $fd) : void {
-        $functions = [];
-
-        if($data['login']['name'] !== 'root') {
-            $response = json_encode(["success" => false, "err" => "not_root", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+    public function run($LonaDB, $data, $client) : void {
+        if ($data['login']['name'] !== 'root') {
+            $this->sendErrorResponse($client, "not_root", $data['process']);
+            return;
         }
 
-        $evalFunc = "\$functions['" . $data['process'] . "'] = new class { \n";
-        $evalFunc .= "public function Execute(\$LonaDB) : mixed {\n";
-        $evalFunc .= $data['function'] . "\n";
-        $evalFunc .= "}\n};";
+        $functionName = $data['process'];
+        $evalFunction = "
+            \$functions['$functionName'] = new class {
+                public function Execute(\$LonaDB) {
+                    " . $data['function'] . "
+                }
+            };
+        ";
 
-        try{
-            eval($evalFunc);
+        try {
+            eval($evalFunction);
 
-            try{
-                $answer = $functions[$data['process']]->Execute($LonaDB);
+            try {
+                $answer = $functions[$functionName]->Execute($LonaDB);
+            } catch (Exception $e) {
+                $answer = $e->getMessage();
             }
-            catch(e){
-                $answer = e;
-            }
-        }
-        catch(e){
-            $answer = e;
+        } catch (Exception $e) {
+            $answer = $e->getMessage();
         }
 
-        $response = json_encode(["success" => true, "response" => $answer, "process" => $data['process']]);
-        $server->send($fd, $response);
-        $server->close($fd);
+        $this->sendSuccessResponse($client, $answer, $data['process']);
+        socket_close($client);
+
+        // Remove the function from the $functions array
+        unset($functions[$functionName]);
+    }
+
+    private function sendErrorResponse($client, $error, $process): void {
+        $response = json_encode(["success" => false, "err" => $error, "process" => $process]);
+        socket_write($client, $response);
+        socket_close($client);
+    }
+
+    private function sendSuccessResponse($client, $response, $process): void {
+        $response = json_encode(["success" => true, "response" => $response, "process" => $process]);
+        socket_write($client, $response);
     }
 };

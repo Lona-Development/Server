@@ -95,6 +95,7 @@ class Table{
         $this->LonaDB->Logger->Table("(".$this->file.") Checkin permission '".$permission."' for user '".$user."'");
 
         if($user === $this->Owner) return true;
+        if($this->LonaDB->UserManager->GetRole($user) === "Administrator" || $this->LonaDB->UserManager->GetRole($user) === "Superuser") return true;
         if($this->permissions[$user]["admin"]) return true;
         if(!$this->permissions[$user][$permission]) return false;
 

@@ -1,32 +1,32 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $server, $fd) : void {
+    public function run($lona, $data, $client) : void {
         if (!$data['table']['name']) {
             $response = json_encode(["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+            socket_write($client, $response);
+            socket_close($client);
             return;
         }
 
         if(!$lona->TableManager->GetTable($data['table']['name'])) {
             $response = json_encode(["success" => false, "err" => "table_missing", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+            socket_write($client, $response);
+            socket_close($client);
             return;
         }
 
         if (!$lona->TableManager->GetTable($data['table']['name'])->CheckPermission($data['login']['name'], "read")){
             $response = json_encode(["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+            socket_write($client, $response);
+            socket_close($client);
             return;
         }
 
         if (!$data['variable']['name']) {
             $response = json_encode(["success" => false, "err" => "bad_variable_name", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+            socket_write($client, $response);
+            socket_close($client);
             return;
         }
 
@@ -43,8 +43,8 @@ return new class {
 
         if (is_array($value) && isset($value['err'])) {
             $value['process'] = $data['process'];
-            $server->send($fd, json_encode($value));
-            $server->close($fd);
+            socket_write($client, json_encode($value));
+            socket_close($client);
             return;
         }
 
@@ -55,15 +55,15 @@ return new class {
                 "process" => $data['process']
             ];
 
-            $server->send($fd, json_encode($response));
-            $server->close($fd);
+            socket_write($client, json_encode($response));
+            socket_close($client);
             return;
         } else {
             $response['variable']['value'] = $value;
             $response['success'] = true;
 
-            $server->send($fd, json_encode($response));
-            $server->close($fd);
+            socket_write($client, json_encode($response));
+            socket_close($client);
             return;
         }
     }

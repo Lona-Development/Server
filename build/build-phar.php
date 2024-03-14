@@ -1,4 +1,5 @@
 <?php
+
 function builderLog(string $message){
     echo(date("Y-m-d h:m", time())." ".$message."\n");
 }
@@ -58,10 +59,14 @@ try {
     builderLog("[BUILD] Adding files to the Phar archive");
     $phar->buildFromDirectory(__DIR__ . '/../src');
 
-    builderLog("[BUILD] Set the default stub file");
+    builderLog("[BUILD] Set default stub file");
     $phar->setDefaultStub('LonaDB/LonaDB.php', 'LonaDB/LonaBD.php');
 
+    builderLog("[BUILD] Set alias file");
     $phar->setAlias($filename."-".$version.".phar");
+
+    builderLog("[BUILD] Set signature algorithm");
+    $phar->setSignatureAlgorithm(Phar::SHA512);
 
     builderLog("[BUILD] Saving the new Phar archive");
     $phar->stopBuffering();
@@ -69,7 +74,7 @@ try {
     builderLog("[INFO] Phar archive created successfully");
 
     builderLog("[RUN] Generating run script");
-    file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" | php -dextension=openswoole.so -dphar.readonly=0 '.$filename.'-'.$version.'.phar');
+    file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" | php -dphar.readonly=0 '.$filename.'-'.$version.'.phar');
 
     builderLog("[RUN] Adding Permissions to run script");
     exec("chmod 777 ./build/run-phar.sh");

@@ -1,35 +1,17 @@
-# Installation
+![Lona Banner](https://github.com/LonaDB/.github/blob/main/profile/banner.png?raw=true)
+LonaDB is a document-oriented DBMS written in PHP. It utilizes AES-encrypted JSON files to store data.</br>
+The communication between the server and clients happens with a TCP-socket using our own API.
 
-To install the LonaDB server, follow these steps:
+## Important links
+- [Installation](https://docs.lona-development.org/guide/install.html)
+- [Webinterface](https://docs.lona-development.org/guide/webinterface.html)
+- [Clients](https://docs.lona-development.org/guide/clients.html)
+- [Plugin Template](https://github.com/LonaDB/PluginTemplate)
 
-## 1. Run the install script with sudo:
+## Contributing
 
-```bash
-sudo curl -fsSL https://lona-development.org/download/install.sh | sh
-```
+Contributions to the LonaDB project are welcome! If you encounter any issues or have suggestions for improvements, please open an issue in the [GitHub repository](https://github.com/LonaDB/Server).
 
-## 2. Start the Server:
+## License
 
-```bash
-./start.sh
-```
-
-## 3. Configure everything:
-
-On every start, you have to put in your encryption key.
-If the wrong key has been provided, the configuration file cannot be read and the Server will stop instantly.
-
-If wanted, you can change the ```php ...``` line in the start.sh file to automatically put in your encryption key:
-```bash
-printf "yourEncryptionKey\n" | php ...
-```
-But this is not recommended since it will basically make everyone be able to find your root user password, wich is stored in the config file, which is encrypted with this key.
-
-We don't store the key by default because of security of the root user.
-
-If you don't have a configuration file, a users table or any data tables, the Server will run you through initial setup and create everything needed for the database to run.
-
-## 4. Use your database:
-
-Thats it! 
-You now have your own instance of LonaDB!
+This project is licensed under the [AGPL-3.0 License](LICENSE). Feel free to use, modify, and distribute it

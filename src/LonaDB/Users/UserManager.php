@@ -97,6 +97,8 @@ class UserManager{
 
     public function SetRole(string $name, string $role) : bool {
         if($name === "root") return false;
+        if($role === "Superuser") return false;
+
         if(!$this->CheckUser($name)) return false;
         
         $this->Users[$name]['role'] = $role;
@@ -108,6 +110,8 @@ class UserManager{
         if($name === "root") return "Superuser";
         if(!$this->CheckUser($name)) return "";
 
+        if($this->Users[$name]['role'] === "Superuser") $this->Users[$name]['role'] = "User";
+        
         return $this->Users[$name]['role'];
     }
 

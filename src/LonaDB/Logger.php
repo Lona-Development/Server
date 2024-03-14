@@ -9,6 +9,7 @@ class Logger{
     private $LogFile;
     private string $infoCache = "";
     private LonaDB $LonaDB;
+    private bool $Start = false;
 
     public function __construct(LonaDB $lonaDB){
         $this->LonaDB = $lonaDB;
@@ -56,6 +57,14 @@ class Logger{
     public function User($msg) : void {
         $log = date("Y-m-d h:i:s")." [USER] ".$msg."\n";
         $this->log($log);
+    }
+
+    public function Start($msg) : void {
+        if(!$this->Start){
+            $this->Start = true;
+            $log = date("Y-m-d h:i:s")." [Startup] ".$msg."\n";
+            $this->log($log);
+        }
     }
 
     public function InfoCache($msg) : void {

@@ -72,7 +72,7 @@ class LonaDB {
                 if(!$this->Running){
                     $this->Logger->Info("Loading Server class.");
                     $this->Server = new Server($this);
-                } 
+                }
             }
         }
         catch (\Exception $e){
@@ -83,17 +83,7 @@ class LonaDB {
     public function LoadPlugins() : void {
         if($this->PluginManager->Loaded) return;
 
-        $pid = @ pcntl_fork();
-        if( $pid == -1 ) {
-            throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
-        }
-        if( $pid ) {
-            // parent 
-            $this->pid = $pid;
-        }
-        else {
-            $this->PluginManager->LoadPlugins();
-        }
+        $this->PluginManager->LoadPlugins();
     }
 
     private function setup() : void {
@@ -144,12 +134,12 @@ class LonaDB {
         echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
         echo "[Shutdown]\n";
         echo "Killing threads...\n";
-        posix_kill( $this->pid, SIGKILL );
         $this->Server->Stop();
+        $this->PluginManager->KillThreads();
         echo "Done!\n";
+        exit();
     }
 }
-
 
 echo "Encryption key:\n";
 $keyHandle = fopen ("php://stdin","r");

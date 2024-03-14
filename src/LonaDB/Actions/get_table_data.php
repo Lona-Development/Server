@@ -1,18 +1,18 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $server, $fd) : void {
+    public function run($lona, $data, $client) : void {
         if(!$lona->TableManager->GetTable($data['table'])) {
             $response = json_encode(["success" => false, "err" => "table_missing", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+            socket_write($client, $response);
+            socket_close($client);
             return;
         }
 
         if(!$lona->TableManager->GetTable($data['table'])->CheckPermission($data['login']['name'], "read")) {
             $response = json_encode(["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
-            $server->send($fd, $response);
-            $server->close($fd);
+            socket_write($client, $response);
+            socket_close($client);
             return;
         }
 
@@ -20,7 +20,7 @@ return new class {
 
         if($tableData === []) $response = '{ "success": true, "data": {}, "process": "'.$data['process'].'" }';
         else $response = json_encode(["success" => true, "data" => $tableData, "process" => $data['process']]);
-        $server->send($fd, $response);
-        $server->close($fd);
+        socket_write($client, $response);
+        socket_close($client);
     }
 };
