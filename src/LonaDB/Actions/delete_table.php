@@ -24,7 +24,7 @@ return new class {
             return;
         }
 
-        if($lona->TableManager->GetTable($data['table']['name'])->GetOwner() !== $data['login']['name']) {
+        if($lona->TableManager->GetTable($data['table']['name'])->GetOwner() !== $data['login']['name'] && $lona->UserManager->GetRole($data['login']['name']) !== "Administrator" && $lona->UserManager->GetRole($data['login']['name']) !== "Superuser") {
             $response = json_encode(["success" => false, "err" => "not_table_owner", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);

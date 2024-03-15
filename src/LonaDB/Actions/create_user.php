@@ -9,6 +9,12 @@ return new class {
             return;
         }
 
+        $key = hash('sha256', $data['process'], true);
+        $parts = explode(':', $data['user']['password']);
+        $iv = hex2bin($parts[0]);
+        $ciphertext = hex2bin($parts[1]);
+        $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+
         if(!$lona->UserManager->CheckPermission($data['login']['name'], "user_create")){
             $lona->Logger->Error("User '".$data['login']['name']."' tried to create a user without permission");
             $response = json_encode(["success" => false, "err" => "no_permission", "process" => $data['process']]);
@@ -25,7 +31,7 @@ return new class {
             return;
         }
 
-        $result = $lona->UserManager->CreateUser($data['user']['name'], $data['user']['password']);
+        $result = $lona->UserManager->CreateUser($data['user']['name'], $password);
         
         $response = json_encode(["success" => $result, "process" => $data['process']]);
 

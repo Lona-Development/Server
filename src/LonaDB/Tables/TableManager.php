@@ -71,7 +71,7 @@ class TableManager{
             return false;
         }
 
-        if($user !== $this->Tables[$name]->GetOwner()) {
+        if($user !== $this->Tables[$name]->GetOwner() && $this->LonaDB->UserManager->GetRole($user) !== "Administrator" && $this->LonaDB->UserManager->GetRole($user) !== "Superuser") {
             $this->LonaDB->Logger->Table("Not the owner! Trying to delete table '" . $name . "', requested by user '" . $user . "'");
             return false;
         }
