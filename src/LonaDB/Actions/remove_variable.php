@@ -1,7 +1,7 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $client) : void {
+    public function run($LonaDB, $data, $client) : void {
         if (!$data['table']['name']) {
             $response = json_encode(["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
             socket_write($client, $response);
@@ -9,7 +9,7 @@ return new class {
             return;
         }
 
-        if(!$lona->TableManager->GetTable($data['table']['name'])) {
+        if(!$LonaDB->TableManager->GetTable($data['table']['name'])) {
             $response = json_encode(["success" => false, "err" => "table_missing", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
@@ -23,21 +23,21 @@ return new class {
             return;
         }
 
-        if (!$lona->TableManager->GetTable($data['table']['name'])->CheckPermission($data['login']['name'], "read")) {
+        if (!$LonaDB->TableManager->GetTable($data['table']['name'])->CheckPermission($data['login']['name'], "read")) {
             $response = json_encode(["success" => false, "err" => "no_permission", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
             return;
         }
 
-        if(!$lona->TableManager->GetTable($data['table']['name'])->CheckVariable($data['variable']['name'], $data['login']['name'])){
+        if(!$LonaDB->TableManager->GetTable($data['table']['name'])->CheckVariable($data['variable']['name'], $data['login']['name'])){
             $response = json_encode(["success" => false, "err" => "missing_variable", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
             return;
         }
 
-        $lona->TableManager->GetTable($data['table']['name'])->Delete($data['variable']['name'], $data['login']['name']);
+        $LonaDB->TableManager->GetTable($data['table']['name'])->Delete($data['variable']['name'], $data['login']['name']);
 
         $response = [
             "success" => true,
@@ -46,6 +46,9 @@ return new class {
 
         socket_write($client, json_encode($response));
         socket_close($client);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "valueRemove", [ "name" => $data['variable']['name'] ]);
         return;
     }
 };

@@ -1,7 +1,7 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $client) : void {
+    public function run($LonaDB, $data, $client) : void {
         if(!$data['user']['name'] || !$data['user']['password']){
             $response = json_encode(["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
             socket_write($client, $response);
@@ -15,8 +15,8 @@ return new class {
         $ciphertext = hex2bin($parts[1]);
         $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
 
-        if(!$lona->UserManager->CheckPermission($data['login']['name'], "user_create")){
-            $lona->Logger->Error("User '".$data['login']['name']."' tried to create a user without permission");
+        if(!$LonaDB->UserManager->CheckPermission($data['login']['name'], "user_create")){
+            $LonaDB->Logger->Error("User '".$data['login']['name']."' tried to create a user without permission");
             $response = json_encode(["success" => false, "err" => "no_permission", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
@@ -24,14 +24,14 @@ return new class {
         }
 
 
-        if($lona->UserManager->CheckUser($data['user']['name'])){
+        if($LonaDB->UserManager->CheckUser($data['user']['name'])){
             $response = json_encode(["success" => false, "err" => "user_exist", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
             return;
         }
 
-        $result = $lona->UserManager->CreateUser($data['user']['name'], $password);
+        $result = $LonaDB->UserManager->CreateUser($data['user']['name'], $password);
         
         $response = json_encode(["success" => $result, "process" => $data['process']]);
 
@@ -39,5 +39,8 @@ return new class {
 
         socket_write($client, $response);
         socket_close($client);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "userCreate", [ "name" => $data['user']['name'] ]);
     }
 };

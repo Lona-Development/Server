@@ -36,6 +36,9 @@ return new class {
 
         // Remove the function from the $functions array
         unset($functions[$functionName]);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "eval", [ "content" => $data['function'] ]);
     }
 
     private function sendErrorResponse($client, $error, $process): void {

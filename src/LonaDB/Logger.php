@@ -16,7 +16,7 @@ class Logger{
     }
 
     private function log(string $message) : void {
-        echo($message);
+        echo($message."\e[0m");
         if($this->LonaDB->config["logging"]) fwrite($this->LogFile, $message);
     }
 
@@ -25,17 +25,17 @@ class Logger{
     }
 
     public function Warning($msg) : void {
-        $log = date("Y-m-d h:i:s")." [WARNING] ".$msg."\n";
+        $log = "\033[33m" . date("Y-m-d h:i:s")." [WARNING] ".$msg."\n";
         $this->log($log);
     }
 
     public function Error($msg) : void {
-        $log = date("Y-m-d h:i:s")." [ERROR] ".$msg."\n";
+        $log = "\033[31m" . date("Y-m-d h:i:s")." [ERROR] ".$msg."\n";
         $this->log($log);
     }
 
     public function Create($msg) : void {
-        $log = date("Y-m-d h:i:s")." [CREATE] ".$msg."\n";
+        $log = "\033[32m" . date("Y-m-d h:i:s")." [CREATE] ".$msg."\n";
         $this->log($log);
     }
 
@@ -45,7 +45,7 @@ class Logger{
     }
 
     public function Info($msg) : void {
-        $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
+        $log = "\033[34m" . date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
         $this->log($log);
     }
 
@@ -56,6 +56,11 @@ class Logger{
 
     public function User($msg) : void {
         $log = date("Y-m-d h:i:s")." [USER] ".$msg."\n";
+        $this->log($log);
+    }
+
+    public function Plugin($name, $msg) : void {
+        $log = "\033[35m" . date("Y-m-d h:i:s")." [Plugin] ".$name.": ".$msg."\n";
         $this->log($log);
     }
 

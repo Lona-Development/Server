@@ -1,7 +1,7 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $client) : void {
+    public function run($LonaDB, $data, $client) : void {
         if (!$data['table']['name']) {
             $response = json_encode(["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
             socket_write($client, $response);
@@ -9,14 +9,14 @@ return new class {
             return;
         }
 
-        if(!$lona->TableManager->GetTable($data['table']['name'])) {
+        if(!$LonaDB->TableManager->GetTable($data['table']['name'])) {
             $response = json_encode(["success" => false, "err" => "table_missing", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
             return;
         }
 
-        if (!$lona->TableManager->GetTable($data['table']['name'])->CheckPermission($data['login']['name'], "read")){
+        if (!$LonaDB->TableManager->GetTable($data['table']['name'])->CheckPermission($data['login']['name'], "read")){
             $response = json_encode(["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
@@ -30,7 +30,7 @@ return new class {
             return;
         }
 
-        $value = $lona->TableManager->GetTable($data['table']['name'])->Get($data['variable']['name'], $data['login']['name']);
+        $value = $LonaDB->TableManager->GetTable($data['table']['name'])->Get($data['variable']['name'], $data['login']['name']);
 
         $response = [
             "variable" => [

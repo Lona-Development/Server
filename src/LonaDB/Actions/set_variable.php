@@ -49,5 +49,8 @@ return new class {
         $response = json_encode(["success" => true, "process" => $data['process']]);
         socket_write($client, $response);
         socket_close($client);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "valueSet", [ "name" => $data['variable']['name'], "value" => $data['variable']['value'] ]);
     }
 };

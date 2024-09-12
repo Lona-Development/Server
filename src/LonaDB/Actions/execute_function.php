@@ -5,5 +5,8 @@ return new class {
         $function = $LonaDB->FunctionManager->GetFunction($data['name']);
 
         $function->Execute($LonaDB, $data, $client);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "functionExecute", [ "name" => $data['name'] ]);
     }
 };

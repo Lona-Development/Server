@@ -1,9 +1,9 @@
 <?php
 
 return new class {
-    public function run($lona, $data, $client) : void {
-        if (!$lona->UserManager->CheckPermission($data['login']['name'], "table_create")) {
-            $lona->Logger->Error("User '".$data['login']['name']."' tried to create a table without permission");
+    public function run($LonaDB, $data, $client) : void {
+        if (!$LonaDB->UserManager->CheckPermission($data['login']['name'], "table_create")) {
+            $LonaDB->Logger->Error("User '".$data['login']['name']."' tried to create a table without permission");
             $response = json_encode(["success" => false, "err" => "no_permission", "process" => $data['process']]);
             socket_write($client, $response);
             socket_close($client);
@@ -24,7 +24,7 @@ return new class {
             return;
         }
 
-        $table = $lona->TableManager->CreateTable($data['table']['name'], $data['login']['name']);
+        $table = $LonaDB->TableManager->CreateTable($data['table']['name'], $data['login']['name']);
 
         if(!$table){
             $response = json_encode(["success" => false, "err" => "table_exists", "process" => $data['process']]);
@@ -36,5 +36,8 @@ return new class {
         $response = json_encode(["success" => true, "process" => $data['process']]);
         socket_write($client, $response);
         socket_close($client);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "tableCreate", [ "name" => $data['table']['name'] ]);
     }
 };

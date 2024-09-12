@@ -66,7 +66,10 @@ try {
     $phar->setAlias($filename."-".$version.".phar");
 
     builderLog("[BUILD] Set signature algorithm");
-    $phar->setSignatureAlgorithm(Phar::SHA512);
+    $phar->setSignatureAlgorithm(Phar::SHA1);
+
+    builderLog("[BUILD] Compress files");
+    $phar->compressFiles(Phar::GZ);
 
     builderLog("[BUILD] Saving the new Phar archive");
     $phar->stopBuffering();

@@ -144,4 +144,47 @@ class PluginManager{
             }
         }
     }
+
+    public function RunEvent(string $executor, string $event, Array $arguments) : void {
+        foreach($this->Plugins as $pluginName => $pluginInstance) {
+            switch($event){
+                case "tableCreate":
+                    $pluginInstance->onTableCreate($executor, $arguments['name']);
+                    break;
+                case "tableDelete":
+                    $pluginInstance->onTableDelete($executor, $arguments['name']);
+                    break;
+                case "valueSet":
+                    $pluginInstance->onValueSet($executor, $arguments['name'], $arguments['value']);
+                    break;
+                case "valueRemove":
+                    $pluginInstance->onValueRemove($executor, $arguments['name']);
+                    break;
+                case "functionCreate":
+                    $pluginInstance->onFunctionCreate($executor, $arguments['name'], $arguments['content']);
+                    break;
+                case "functionDelete":
+                    $pluginInstance->onFunctionDelete($executor, $arguments['name']);
+                    break;
+                case "functionExecute":
+                    $pluginInstance->onFunctionExecute($executor, $arguments['name']);
+                    break;
+                case "userCreate":
+                    $pluginInstance->onUserCreate($executor, $arguments['name']);
+                    break;
+                case "userDelete":
+                    $pluginInstance->onUserDelete($executor, $arguments['name']);
+                    break;
+                case "eval":
+                    $pluginInstance->onEval($executor, $arguments['content']);
+                    break;
+                case "permissionAdd":
+                    $pluginInstance->onPermissionAdd($executor, $arguments['user'], $arguments['permission']);
+                    break;
+                case "permissionRemove":
+                    $pluginInstance->onPermissionRemove($executor, $arguments['user'], $arguments['permission']);
+                    break;
+            }
+        }
+    }
 }

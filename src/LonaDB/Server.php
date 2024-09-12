@@ -98,6 +98,9 @@ class Server {
     private function handleData(string $dataString, $client) : void {
         try {
             $data = json_decode($dataString, true);
+
+	    if(!is_array($data)) return;
+	    if(!array_key_exists('action', $data)) return;
             
             $key = hash('sha256', $data['process'], true);
             $parts = explode(':', $data['login']['password']);

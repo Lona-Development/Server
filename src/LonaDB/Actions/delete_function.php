@@ -14,5 +14,8 @@ return new class {
         $response = json_encode(["success" => true, "process" => $data['process']]);
         socket_write($client, $response);
         socket_close($client);
+
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "functionDelete", [ "name" => $data['function']['name'] ]);
     }
 };

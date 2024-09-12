@@ -1,4 +1,4 @@
-build/run-phar.sh
-build/debug/*
-build/release/*
+build/*
 src/vendor/
+run
+build-phar
