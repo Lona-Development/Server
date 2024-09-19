@@ -2,11 +2,14 @@
 
 namespace LonaDB\Tables;
 
+//Encryption/decryption 
 define('AES_256_CBC', 'aes-256-cbc');
 
+//Load Main file
 use LonaDB\LonaDB;
 
 class Table{
+    //Create all variables
     private string $file;
     private array $data;
     private array $permissions;

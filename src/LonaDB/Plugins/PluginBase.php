@@ -8,12 +8,14 @@ use LonaDB\Logger;
 require 'vendor/autoload.php';
 
 class PluginBase{
-    private string $Name;
     private LonaDB $LonaDB;
+    private string $Name;
+    private string $Version;
 
-    public function __construct(LonaDB $LonaDB, string $name) {
+    public function __construct(LonaDB $LonaDB, string $name, string $version) {
         $this->LonaDB = $LonaDB;
         $this->Name = $name;
+        $this->Version = $version;
 
         $this->GetLogger()->Load("Loading Plugin '" . $this->Name . "'");
     }
@@ -24,9 +26,11 @@ class PluginBase{
 
     final public function GetLonaDB() : LonaDB { return $this->LonaDB; }
 
+    final public function GetLogger() : Logger { return $this->LonaDB->Logger; }
+
     final public function GetName() : string { return $this->Name; }
 
-    final public function GetLogger() : Logger { return $this->LonaDB->Logger; }
+    final public function GetVersion() : string { return $this->Version; }
 
     //Events
     public function onTableCreate(string $executor, string $name) : void {}

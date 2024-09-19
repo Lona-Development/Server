@@ -40,7 +40,7 @@ class PluginManager{
                         try{
                             $this->load_classphp($path, $phar);
     
-                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name']);");
+                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name'], \$conf['version']);");
 
                             $pid = @ pcntl_fork();
                             if( $pid == -1 ) {
@@ -86,7 +86,7 @@ class PluginManager{
                                 $phar->stopBuffering();
                             }
 
-                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name']);");
+                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name'], \$conf['version']);");
 
                             $pid = @ pcntl_fork();
                             if( $pid == -1 ) {

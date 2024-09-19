@@ -78,6 +78,8 @@ try {
 
     builderLog("[RUN] Generating run script");
     file_put_contents("./build/run-phar.sh", 'cd '.$path.' ; printf "test\n" | php -dphar.readonly=0 '.$filename.'-'.$version.'.phar');
+    file_put_contents("./build/run-phar-pm2.sh", 'cd release ; printf "test\n" | php -dphar.readonly=0 '.$filename.'-'.$version.'.phar');
+    file_put_contents("./build/run-phar-debug-pm2.sh", 'cd debug ; printf "test\n" | php -dphar.readonly=0 '.$filename.'-'.$version.'.phar');
 
     builderLog("[RUN] Adding Permissions to run script");
     exec("chmod 777 ./build/run-phar.sh");
