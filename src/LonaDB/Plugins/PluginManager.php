@@ -14,7 +14,7 @@ class PluginManager{
 
     public function __construct(LonaDB $lonaDB) {
         $this->LonaDB = $lonaDB;
-        $this->Tables = array();
+        $this->Plugins = array();
     }
 
     public function LoadPlugins () : void {
