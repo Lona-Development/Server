@@ -37,6 +37,7 @@ class PluginManager{
             if(str_ends_with($r, ".phar")){
                 //Load PHAR file
                 $phar = new \Phar("plugins/" . $r, 0);
+                $configFound = false;
 
                 //Loop through all files in the PHAR archive
                 foreach (new \RecursiveIteratorIterator($phar) as $file) {
@@ -46,97 +47,110 @@ class PluginManager{
                         $conf = json_decode(file_get_contents($file->getPathName()), true);
                         //Generate path variable for the file
                         eval("\$path = substr(\$file->getPathName(), 0, -". strlen($file->getFileName()) .");");
+                        $configFound = true;
                     }
                 }
 
-                //Check the configuration
-                if($conf['main'] && $conf['main']['path'] && $conf['main']['class'] && $conf['main']['namespace'] && $conf['name']){
-                    //Check if main file declared in plugin.json exists
-                    file_put_contents($path . $conf['main']['path'], file_get_contents($path . $conf['main']['path']));
-                    if(file_get_contents($path. $conf['main']['path']) !== ""){
-                        try{
-                            //Load PHAR
-                            $this->load_classphp($path, $phar);
-    
-                            //Add it to the Plugins array
-                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name'], \$conf['version']);");
+                if($configFound){
+                    //Check the configuration
+                    if($conf['main'] && $conf['main']['path'] && $conf['main']['class'] && $conf['main']['namespace'] && $conf['name']){
+                        //Check if main file declared in plugin.json exists
+                        file_put_contents($path . $conf['main']['path'], file_get_contents($path . $conf['main']['path']));
+                        if(file_get_contents($path. $conf['main']['path']) !== ""){
+                            try{
+                                //Load PHAR
+                                $this->load_classphp($path, $phar);
+        
+                                //Add it to the Plugins array
+                                eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name'], \$conf['version']);");
 
-                            //Create a thread for it
-                            $pid = @ pcntl_fork();
-                            if( $pid == -1 ) {
-                                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+                                //Create a thread for it
+                                $pid = @ pcntl_fork();
+                                if( $pid == -1 ) {
+                                    throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+                                }
+                                if( $pid ) {
+                                    //Save thread process ID
+                                    $this->pids[$conf['name']] = $pid;
+                                }
+                                else {
+                                    //Run plugin's onEnable event
+                                    $this->Plugins[$conf['name']]->onEnable();
+                                }
                             }
-                            if( $pid ) {
-                                //Save thread process ID
-                                $this->pids[$conf['name']] = $pid;
-                            }
-                            else {
-                                //Run plugin's onEnable event
-                                $this->Plugins[$conf['name']]->onEnable();
+                            catch(e){
+                                $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
                             }
                         }
-                        catch(e){
-                            $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
-                        }
+                        else $this->LonaDB->Logger->Error("Main file for plugin '" . $conf['name'] . "' is declared in config but doesn't exist");
                     }
-                    else $this->LonaDB->Logger->Error("Main file for plugin '" . $conf['name'] . "' is declared in config but doesn't exist");
+                    else{
+                        $this->LonaDB->Logger->Error("Could not load the plugin in '" . $r . "'");
+                    }
                 }
                 else{
-                    $this->LonaDB->Logger->Error("Could not load the plugin in '" . $r . "'");
+                    $this->LonaDB->Logger->Error("Missing config in '" . $r . "'");
                 }
             }
             //Load plugin from folder => Plugin hasn't been compiled
             else if($r != "." && $r !== ".."){
                 //Scan "plugins/$foler"
                 $debugscan = scandir("plugins/" . $r);
-
+                $configFound = false;
                 //Check if plugin.json is inside the folder
-                if(in_array("plugin.json", $debugscan)) $conf = json_decode(file_get_contents("plugins/" . $r . "/plugin.json"), true);
-
-                //Check configuration
-                if($conf['main'] && $conf['main']['path'] && $conf['main']['class'] && $conf['main']['namespace'] && $conf['name']){
-                    //Check if main file exists
-                    file_put_contents("plugins/" . $r . "/" . $conf['main']['path'], file_get_contents("plugins/" . $r . "/" . $conf['main']['path']));
-                    if(file_get_contents("plugins/" . $r . "/" . $conf['main']['path']) !== ""){
-                        try{
-                            //Load all PHP files in the folder
-                            $this->load_classphp("plugins/" . $r . "/");
-                            
-                            //Check if the plugin should be built
-                            if($conf['build']){
-                                //Build the PHAR
-                                $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0, "plugins/".$conf['name']."-".$conf['version'].".phar");
-                                $phar->buildFromDirectory("plugins/".$r."/");                            
-                                $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php', $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
-                                $phar->setAlias($conf['name']."-".$conf['version'].".phar");
-                                $phar->stopBuffering();
-                            }
-
-                            //Add plugin to the plugins array
-                            eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name'], \$conf['version']);");
-
-                            //Create a thread for the plugin
-                            $pid = @ pcntl_fork();
-                            if( $pid == -1 ) {
-                                throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
-                            }
-                            if( $pid ) {
-                                //Save the process ID
-                                $this->pids[$conf['name']] = $pid;
-                            }
-                            else {
-                                //Run the onEnable event
-                                $this->Plugins[$conf['name']]->onEnable();
-                            }
-                        }
-                        catch(e){
-                            $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
-                        }
-                    }
-                    else $this->LonaDB->Logger->Error("Main file for plugin '" . $conf['name'] . "' is declared in config but doesn't exist");
+                if(in_array("plugin.json", $debugscan)) {
+                    $conf = json_decode(file_get_contents("plugins/" . $r . "/plugin.json"), true);
+                    $configFound = true;
                 }
-                else{
-                    $this->LonaDB->Logger->Error("Could not load the plugin in '" . $r . "'");
+                if($configFound){
+                    //Check configuration
+                    if($conf['main'] && $conf['main']['path'] && $conf['main']['class'] && $conf['main']['namespace'] && $conf['name']){
+                        //Check if main file exists
+                        file_put_contents("plugins/" . $r . "/" . $conf['main']['path'], file_get_contents("plugins/" . $r . "/" . $conf['main']['path']));
+                        if(file_get_contents("plugins/" . $r . "/" . $conf['main']['path']) !== ""){
+                            try{
+                                //Load all PHP files in the folder
+                                $this->load_classphp("plugins/" . $r . "/");
+                                
+                                //Check if the plugin should be built
+                                if($conf['build']){
+                                    //Build the PHAR
+                                    $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0, "plugins/".$conf['name']."-".$conf['version'].".phar");
+                                    $phar->buildFromDirectory("plugins/".$r."/");                            
+                                    $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php', $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
+                                    $phar->setAlias($conf['name']."-".$conf['version'].".phar");
+                                    $phar->stopBuffering();
+                                }
+
+                                //Add plugin to the plugins array
+                                eval("\$this->Plugins[\$conf['name']] = new " . $conf['main']['namespace'] . "\\" . $conf['main']['class'] . "(\$this->LonaDB, \$conf['name'], \$conf['version']);");
+
+                                //Create a thread for the plugin
+                                $pid = @ pcntl_fork();
+                                if( $pid == -1 ) {
+                                    throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
+                                }
+                                if( $pid ) {
+                                    //Save the process ID
+                                    $this->pids[$conf['name']] = $pid;
+                                }
+                                else {
+                                    //Run the onEnable event
+                                    $this->Plugins[$conf['name']]->onEnable();
+                                }
+                            }
+                            catch(e){
+                                $this->LonaDB->Logger->Error("Could not load main file for plugin '" . $conf['name'] . "'");
+                            }
+                        }
+                        else $this->LonaDB->Logger->Error("Main file for plugin '" . $conf['name'] . "' is declared in config but doesn't exist");
+                    }
+                    else{
+                        $this->LonaDB->Logger->Error("Could not load the plugin in '" . $r . "'");
+                    }
+                }
+                else {
+                    $this->LonaDB->Logger->Error("Missing configuration for plugin in '" . $r . "'");
                 }
             }
         }
