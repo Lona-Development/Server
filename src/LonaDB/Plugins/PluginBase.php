@@ -2,12 +2,15 @@
 
 namespace LonaDB\Plugins;
 
+//Load autoload from composer
+require 'vendor/autoload.php';
+
+//Load Main file and Logger class
 use LonaDB\LonaDB;
 use LonaDB\Logger;
 
-require 'vendor/autoload.php';
-
 class PluginBase{
+    //Create all variables
     private LonaDB $LonaDB;
     private string $Name;
     private string $Version;
@@ -20,19 +23,20 @@ class PluginBase{
         $this->GetLogger()->Load("Loading Plugin '" . $this->Name . "'");
     }
 
-    public function onEnable() : void {
-        $this->GetLogger()->Info("Plugin '" . $this->Name . "' has been loaded");
-    }
-
+    //Get LonaDB instance
     final public function GetLonaDB() : LonaDB { return $this->LonaDB; }
 
+    //Get Logger instance
     final public function GetLogger() : Logger { return $this->LonaDB->Logger; }
 
+    //Get own plugin name
     final public function GetName() : string { return $this->Name; }
 
+    //Get own plugin version
     final public function GetVersion() : string { return $this->Version; }
 
     //Events
+    public function onEnable() : void { $this->GetLogger()->Info("Plugin '" . $this->Name . "' has been loaded"); }
     public function onTableCreate(string $executor, string $name) : void {}
     public function onTableDelete(string $executor, string $name) : void {}
     public function onValueSet(string $executor, string $name, string $value) : void {}
