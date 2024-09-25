@@ -77,7 +77,7 @@ class TableManager{
 
     public function CreateTable(string $name, string $owner) : bool {
         //Check if there already is a table with the exact same name
-        if($this->Tables[$name]) return false;
+        if($this->GetTable($name)) return false;
 
         //Create table instance
         $this->Tables[$name] = new Table($this->LonaDB, true, $name, $owner);
@@ -86,7 +86,7 @@ class TableManager{
 
     public function DeleteTable(string $name, string $user) : bool {
         //Check if the table exists
-        if(!$this->Tables[$name]) return false;
+        if(!$this->GetTable($name)) return false;
 
         //Check if deleting user is the table owner, a global administrator or superuser
         if($user !== $this->Tables[$name]->GetOwner() && $this->LonaDB->UserManager->GetRole($user) !== "Administrator" && $this->LonaDB->UserManager->GetRole($user) !== "Superuser") return false;

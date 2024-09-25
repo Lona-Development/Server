@@ -3,6 +3,9 @@
 require 'vendor/autoload.php';
 use LonaDB\LonaDB;
 
+//TODO: Refactoring the eval action
+
+
 return new class {
     public function run($LonaDB, $data, $client) : void {
         //Check if user is root (only root is allowed to use eval)
@@ -11,7 +14,6 @@ return new class {
             $this->sendErrorResponse($client, "not_root", $data['process']);
             return;
         }
-
         //Generate eval script to create a class with the desired function
         $functionName = $data['process'];
         $evalFunction = "
@@ -21,11 +23,9 @@ return new class {
                 }
             };
         ";
-
         try {
             //Run the script
             eval($evalFunction);
-
             try {
                 //Execute the function
                 $answer = $functions[$functionName]->Execute($LonaDB);
@@ -37,7 +37,6 @@ return new class {
             //Catch errors
             $answer = $e->getMessage();
         }
-
         //Send response and close socket
         $this->sendSuccessResponse($client, $answer, $data['process']);
         // Remove the function from the $functions array

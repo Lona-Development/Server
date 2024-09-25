@@ -122,7 +122,7 @@ class Table{
 
     public function AddPermission(string $name, string $permission, string $user) : bool {
         //Check if user is table owner/administrator, global administrator or superuser
-        if($user !== $this->Owner && !$this->permissions[$user]["admin"] && $this->LonaDB->UserManager->GetRole($user) !== "Administrator" && $this->LonaDB->UserManager->GetRole($user) !== "Superuser") return false;
+        if($user !== $this->Owner && !$this->CheckPermission($user, "admin") && $this->LonaDB->UserManager->GetRole($user) !== "Administrator" && $this->LonaDB->UserManager->GetRole($user) !== "Superuser") return false;
 
         //Add permission and save
         $this->permissions[$name][$permission] = true;
@@ -132,7 +132,7 @@ class Table{
 
     public function RemovePermission(string $name, string $permission, string $user) : bool {
         //Check if user is table owner/administrator, global administrator or superuser
-        if($user !== $this->Owner && !$this->permissions[$user]["admin"] && $this->LonaDB->UserManager->GetRole($user) !== "Administrator" && $this->LonaDB->UserManager->GetRole($user) !== "Superuser") return false;
+        if($user !== $this->Owner && !$this->CheckPermission($user, "admin") && $this->LonaDB->UserManager->GetRole($user) !== "Administrator" && $this->LonaDB->UserManager->GetRole($user) !== "Superuser") return false;
 
         //Remove permission and save
         unset($this->permissions[$name][$permission]);

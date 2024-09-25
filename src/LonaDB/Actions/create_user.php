@@ -1,16 +1,10 @@
 <?php
 
 return new class {
-    public function run($LonaDB, $data, $client) : void {
+    public function run($LonaDB, $data, $client) : bool {
         //Check if username and password have been set
-        if(!$data['user']['name'] || !$data['user']['password']){
-            //Create response array
-            $response = json_encode(["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
-            //Send response and close socket
-            socket_write($client, $response);
-            socket_close($client);
-            return;
-        }
+        if(!$data['user']['name'] || !$data['user']['password'])
+            return $this->Send($client, ["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
         //Hash process ID
         $key = hash('sha256', $data['process'], true);
         //Split encrypted password from IV
@@ -20,32 +14,28 @@ return new class {
         //Decrypt password
         $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
         //Check if user is allowed to create new users
-        if(!$LonaDB->UserManager->CheckPermission($data['login']['name'], "user_create")){
-            $LonaDB->Logger->Error("User '".$data['login']['name']."' tried to create a user without permission");
-            //Create response array
-            $response = json_encode(["success" => false, "err" => "no_permission", "process" => $data['process']]);
-            //Send response and close socket
-            socket_write($client, $response);
-            socket_close($client);
-            return;
-        }
+        if(!$LonaDB->UserManager->CheckPermission($data['login']['name'], "user_create"))
+            return $this->Send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
         //Check if a user with that name already exists
-        if($LonaDB->UserManager->CheckUser($data['user']['name'])){
-            //Create response array
-            $response = json_encode(["success" => false, "err" => "user_exist", "process" => $data['process']]);
-            //Send response and close socket
-            socket_write($client, $response);
-            socket_close($client);
-            return;
-        }
+        if($LonaDB->UserManager->CheckUser($data['user']['name']))
+            return $this->Send($client, ["success" => false, "err" => "user_exist", "process" => $data['process']]);
         //Create user
         $result = $LonaDB->UserManager->CreateUser($data['user']['name'], $password);
-        //Create response array
-        $response = json_encode(["success" => $result, "process" => $data['process']]);
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "userCreate", [ "name" => $data['user']['name'] ]);
+        //Send response
+        return $this->Send($client, ["success" => $result, "process" => $data['process']]);
+    }
+
+    private function Send ($client, $responseArray) : bool {
+        //Convert response array to JSON object
+        $response = json_encode($responseArray);
         //Send response and close socket
         socket_write($client, $response);
         socket_close($client);
-        //Run plugin event
-        $LonaDB->PluginManager->RunEvent($data['login']['name'], "userCreate", [ "name" => $data['user']['name'] ]);
+        //Return state
+        $bool = false;
+        if($responseArray['success']) $bool = true;
+        return $bool;
     }
 };

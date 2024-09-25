@@ -49,9 +49,7 @@ class UserManager{
         //If username is root, check for the root password
         if($name === "root" && $password === $this->LonaDB->config["root"]) return true;
         //Check if the user exists
-        if(!$this->Users[$name]) {
-            return false;
-        }
+        if(!$this->CheckUsers($name)) return false;
         //Check if the password is correct
         if($this->Users[$name]["password"] !== $password) return false;
         //All checks successfull
