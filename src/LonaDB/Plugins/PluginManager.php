@@ -32,7 +32,10 @@ class PluginManager{
 
         //For all files and folders in "plugins/"
         $results = scandir("plugins/");
-        $this->LonaDB->Logger->Info("Plugins found: " . implode(', ', $results));
+        foreach($results as $result){
+            if($result != "." && $result != "..")
+                $this->LonaDB->Logger->Info("Plugins found: " . $result);
+        }
         foreach($results as $r){
             //Check if file ends with ".phar" => Plugin has been compiled
             if(str_ends_with($r, ".phar")){

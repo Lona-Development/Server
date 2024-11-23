@@ -1,5 +1,11 @@
 <?php
 
+require 'vendor/autoload.php';
+use LonaDB\LonaDB;
+
+//TODO: Refactoring the eval action
+
+
 return new class {
     public function run($LonaDB, $data, $client) : void {
         //Check if user is root (only root is allowed to use eval)
@@ -17,41 +23,41 @@ return new class {
                 }
             };
         ";
-        $success = true;
         try {
             //Run the script
             eval($evalFunction);
             try {
                 //Execute the function
-                //$result will be the returned variable from the eval script
-                $result = $functions[$functionName]->Execute($LonaDB);
+                $answer = $functions[$functionName]->Execute($LonaDB);
             } catch (Exception $e) {
                 //Catch errors
-                $result = $e->getMessage();
-                $success = false;
+                $answer = $e->getMessage();
             }
         } catch (Exception $e) {
             //Catch errors
-            $result = $e->getMessage();
-            $success = false;
+            $answer = $e->getMessage();
         }
-        //Run plugin event
-        $LonaDB->PluginManager->RunEvent($data['login']['name'], "eval", [ "content" => $data['function'] ]);
+        //Send response and close socket
+        $this->sendSuccessResponse($client, $answer, $data['process']);
         // Remove the function from the $functions array
         unset($functions[$functionName]);
-        //Send response
-        return $this->Send($client, ["success" => $success, "result" => $result, "process" => $process]);;
+        //Run plugin event
+        $LonaDB->PluginManager->RunEvent($data['login']['name'], "eval", [ "content" => $data['function'] ]);
     }
 
-    private function Send ($client, $responseArray) : bool {
-        //Convert response array to JSON object
-        $response = json_encode($responseArray);
+    private function sendErrorResponse($client, $error, $process): void {
+        //Create response array
+        $response = json_encode(["success" => false, "err" => $error, "process" => $process]);
         //Send response and close socket
         socket_write($client, $response);
         socket_close($client);
-        //Return state
-        $bool = false;
-        if($responseArray['success']) $bool = true;
-        return $bool;
+    }
+
+    private function sendSuccessResponse($client, $response, $process): void {
+        //Create response array
+        $response = json_encode(["success" => true, "response" => $response, "process" => $process]);
+        //Send response and close socket
+        socket_write($client, $response);
+        socket_close($client);
     }
 };
