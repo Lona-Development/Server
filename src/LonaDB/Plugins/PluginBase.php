@@ -39,8 +39,8 @@ class PluginBase{
     public function onEnable() : void { $this->GetLogger()->Info("Plugin '" . $this->Name . "' has been loaded"); }
     public function onTableCreate(string $executor, string $name) : void {}
     public function onTableDelete(string $executor, string $name) : void {}
-    public function onValueSet(string $executor, string $name, string $value) : void {}
-    public function onValueRemove(string $executor, string $name) : void {}
+    public function onValueSet(string $executor, string $table, string $name, string $value) : void {}
+    public function onValueRemove(string $executor, string $table, string $name) : void {}
     public function onFunctionCreate(string $executor, string $name, string $content) : void {}
     public function onFunctionDelete(string $executor, string $name) : void {}
     public function onFunctionExecute(string $executor, string $name) : void {}
