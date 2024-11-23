@@ -24,7 +24,7 @@ class PluginManager{
 
     public function LoadPlugins () : void {
         //Check if plugins have already been loaded
-        if($this->Loaded = true) return;
+        if($this->Loaded == true) return;
         $this->Loaded = true;
 
         //Check if "plugins/" directory exists, create if it doesn't
@@ -32,6 +32,7 @@ class PluginManager{
 
         //For all files and folders in "plugins/"
         $results = scandir("plugins/");
+        $this->LonaDB->Logger->Info("Plugins found: " . implode(', ', $results));
         foreach($results as $r){
             //Check if file ends with ".phar" => Plugin has been compiled
             if(str_ends_with($r, ".phar")){
@@ -66,9 +67,10 @@ class PluginManager{
 
                                 //Create a thread for it
                                 $pid = @ pcntl_fork();
-                                if( $pid == -1 ) {
-                                    throw new Exception( $this->getError( Thread::COULD_NOT_FORK ), Thread::COULD_NOT_FORK );
-                                }
+                                if ($pid == -1) {
+                                    $this->LonaDB->Logger->Error("Failed to fork process for plugin: " . $conf['name']);
+                                    continue;
+                                }                                
                                 if( $pid ) {
                                     //Save thread process ID
                                     $this->pids[$conf['name']] = $pid;
@@ -201,6 +203,10 @@ class PluginManager{
     }
 
     public function RunEvent(string $executor, string $event, Array $arguments) : void {
+        if (!is_array($arguments)) {
+            $this->LonaDB->Logger->Error("Invalid arguments provided for event: " . $event);
+            return;
+        }
         //Loop through all plugins
         foreach($this->Plugins as $pluginName => $pluginInstance) {
             //Run event identified by name

@@ -86,6 +86,7 @@ class Server {
         }
 
         //Tell the PluginManager to load the plugins
+        $this->LonaDB->Logger->Info("PluginManager: Starting to load plugins...");
         $this->LonaDB->LoadPlugins();
 
         $this->LonaDB->Logger->Start("Server running on port ".$this->port);
