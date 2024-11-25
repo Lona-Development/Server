@@ -9,6 +9,7 @@ define('AES_256_CBC', 'aes-256-cbc');
 require 'vendor/autoload.php';
 
 //Load Server, Logger and Managers
+use Exception;
 use LonaDB\Server;
 use LonaDB\Logger;
 use LonaDB\Tables\TableManager;
@@ -19,21 +20,21 @@ use LonaDB\Plugins\PluginManager;
 class LonaDB {
     //Create all variables
     public array $config;
-    public bool $Running = false;
-    public string $EncryptionKey;
+    public bool $running = false;
+    public string $encryptionKey;
 
-    public Logger $Logger;
-    public Server $Server;
-    public TableManager $TableManager;
-    public UserManager $UserManager;
-    public FunctionManager $FunctionManager;
-    public PluginManager $PluginManager;
+    public Logger $logger;
+    public Server $server;
+    public TableManager $tableManager;
+    public UserManager $userManager;
+    public FunctionManager $functionManager;
+    public PluginManager $pluginManager;
 
     public function __construct(string $key) {
         //EncryptionKey is used to decrypt the configuration.lona file 
-        $this->EncryptionKey = $key;
+        $this->encryptionKey = $key;
         //Create an instance of the Logger
-        $this->Logger = new Logger($this);
+        $this->logger = new Logger($this);
         //Run variable, used to know if the configuration was decrypted successfully
         $run = false;
         
@@ -41,10 +42,11 @@ class LonaDB {
             echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
             error_reporting(E_ERROR | E_PARSE);
             
-            $this->Logger->InfoCache("LonaDB v4.6.0");
-            $this->Logger->InfoCache("Looking for config.");
+            $this->logger->InfoCache("LonaDB v4.6.0");
+            $this->logger->InfoCache("Looking for config.");
 
-            //Create an empty configuration.lona if it doesn't exist. file_exists gave an error because we run LonaDB as a phar. 
+            //Create an empty configuration.lona if it doesn't exist.
+            //File_exists gave an error because we run LonaDB as a phar.
             file_put_contents("configuration.lona", file_get_contents("configuration.lona"));
             //If the file didn't exist before, run setup
             if(file_get_contents("configuration.lona") === "") $this->setup();
@@ -65,7 +67,7 @@ class LonaDB {
 
             //If the configuration was decrypted successfully
             if($run){
-                $this->Logger->InfoCache("Loading config.");
+                $this->logger->InfoCache("Loading config.");
                 //Split encrypted from IV
                 $parts = explode(':', file_get_contents("./configuration.lona"));
                 //Decrypt using EncryptionKey and IV
@@ -73,7 +75,7 @@ class LonaDB {
                 //Load the config
                 $this->config = json_decode($decrypted, true);
 
-                $this->Logger->InfoCache("Checking config.");
+                $this->logger->InfoCache("Checking config.");
                 //Check if the configuration is missing something
                 if(!$this->config["port"] || !$this->config["address"] || !$this->config["encryptionKey"] || !$this->config["root"]) {
                     //Configuration is missing a variable => Setup
@@ -81,46 +83,46 @@ class LonaDB {
                 }
 
                 //Check if logging to a file is enabled, if it is, write logs to the file
-                $this->Logger->LoadLogger();
-                //Dop the chached logs to the file (if enabled)
-                $this->Logger->DropCache();
+                $this->logger->LoadLogger();
+                //Dop the cached logs to the file (if enabled)
+                $this->logger->DropCache();
 
-                //Initialize Manaers
-                $this->Logger->Info("Loading TableManager class.");
-                $this->TableManager = new TableManager($this);
-                $this->Logger->Info("Loading UserManager class.");
-                $this->UserManager = new UserManager($this);
-                $this->Logger->Info("Loading FunctionManager class.");
-                $this->FunctionManager = new FunctionManager($this);
-                $this->Logger->Info("Loading PluginManager class.");
-                $this->PluginManager = new PluginManager($this);
+                //Initialize Managers
+                $this->logger->Info("Loading TableManager class.");
+                $this->tableManager = new TableManager($this);
+                $this->logger->Info("Loading UserManager class.");
+                $this->userManager = new UserManager($this);
+                $this->logger->Info("Loading FunctionManager class.");
+                $this->functionManager = new FunctionManager($this);
+                $this->logger->Info("Loading PluginManager class.");
+                $this->pluginManager = new PluginManager($this);
 
-                //If the server is already runnning
+                //If the server is already running,
                 //This is needed because in some ocasions we had the server start twice, stopping the first one and throwing an error
-                if(!$this->Running){
+                if(!$this->running){
                     //Initialize server
-                    $this->Logger->Info("Loading Server class.");
-                    $this->Server = new Server($this);
+                    $this->logger->Info("Loading Server class.");
+                    $this->server = new Server($this);
                 }
             }
         }
-        catch (\Exception $e){
-            $this->Logger->Error($e);
+        catch (Exception $e){
+            $this->logger->Error($e);
         }
     }
 
     //Tell the PluginManager to load all plugins
-    public function LoadPlugins() : void {
+    public function loadPlugins() : void {
         //Check if the Plugins have already been loaded
-        if($this->PluginManager->Loaded) return;
+        if($this->pluginManager->loaded) return;
 
         //Load Plugins
-        $this->PluginManager->LoadPlugins();
+        $this->pluginManager->LoadPlugins();
     }
 
     //Setup script
     private function setup() : void {
-        $this->Logger->InfoCache("Invalid or missing config. Starting setup.");
+        $this->logger->infoCache("Invalid or missing config. Starting setup.");
 
         //Port
         echo "Database port:\n";
@@ -154,7 +156,7 @@ class LonaDB {
         $log = false;
         if(trim(strtolower($logAns)) === "y") $log = true;
 
-        $this->Logger->InfoCache("Saving config.");
+        $this->logger->infoCache("Saving config.");
 
         //Create IV
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
@@ -168,20 +170,20 @@ class LonaDB {
         );
 
         //Encrypt config
-        $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->EncryptionKey, 0, $iv);
+        $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->encryptionKey, 0, $iv);
         //Save to configuration.lona
         file_put_contents("./configuration.lona", $encrypted.":".base64_encode($iv));
     }
     
     //Stop script
-    public function Stop() : void {
+    public function stop() : void {
         echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
         echo "[Shutdown]\n";
         echo "Killing threads...\n";
         //Stop the server
-        $this->Server->Stop();
+        $this->server->stop();
         //Kill plugin Threads
-        $this->PluginManager->KillThreads();
+        $this->pluginManager->killThreads();
         echo "Done!\n";
         exit();
     }

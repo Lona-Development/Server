@@ -1,26 +1,21 @@
 <?php
 
-return new class {
-    public function run($LonaDB, $data, $client) : bool {
-        //Get function from FunctionManager
-        $function = $LonaDB->FunctionManager->GetFunction($data['name']);
-        //Execute function
-        $response = $function->Execute($LonaDB, $data, $client);
-        //Run plugin event
-        $LonaDB->PluginManager->RunEvent($data['login']['name'], "functionExecute", [ "name" => $data['name'] ]);
-        //Send response
-        return $this->Send($client, ["success" => true, "result" => $response, "process" => $data["process"]]);
-    }
+use LonaDB\Interfaces\ActionInterface;
+use LonaDB\LonaDB;
+use LonaDB\Traits\ActionTrait;
 
-    private function Send ($client, $responseArray) : bool {
-        //Convert response array to JSON object
-        $response = json_encode($responseArray);
-        //Send response and close socket
-        socket_write($client, $response);
-        socket_close($client);
-        //Return state
-        $bool = false;
-        if($responseArray['success']) $bool = true;
-        return $bool;
+return new class implements ActionInterface {
+
+    use ActionTrait;
+
+    public function run(LonaDB $lonaDB, $data, $client) : bool {
+        //Get function from FunctionManager
+        $function = $lonaDB->functionManager->getFunction($data['name']);
+        //Execute function
+        $response = $function->execute($lonaDB, $data, $client);
+        //Run plugin event
+        $lonaDB->pluginManager->runEvent($data['login']['name'], "functionExecute", [ "name" => $data['name'] ]);
+        //Send response
+        return $this->send($client, ["success" => true, "result" => $response, "process" => $data["process"]]);
     }
 };

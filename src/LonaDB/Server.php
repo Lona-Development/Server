@@ -5,8 +5,8 @@ namespace LonaDB;
 //Load autoload from composer
 require 'vendor/autoload.php';
 
-//Load Main file
-use LonaDB\LonaDB;
+//Load the Main file
+use Exception;
 
 class Server {
     //Create all variables
@@ -17,19 +17,19 @@ class Server {
     private int $port;
 
     private $socket;
-    private bool $SocketRunning;
+    private bool $socketRunning;
 
-    private LonaDB $LonaDB;
+    private LonaDB $lonaDB;
 
     public function __construct(LonaDB $lonaDB) {
-        $this->LonaDB = $lonaDB;
+        $this->lonaDB = $lonaDB;
 
         //Check if the Server is already running
-        if($this->LonaDB->Running) return;
+        if($this->lonaDB->running) return;
 
         //Declare important variables
-        $this->LonaDB->Running = true;
-        $this->SocketRunning = false;
+        $this->lonaDB->running = true;
+        $this->socketRunning = false;
         $this->config = $lonaDB->config;
 
         //IP and port for the TCP Socket
@@ -48,20 +48,20 @@ class Server {
 
         //Loop through all action files
         foreach ($actionFiles as $file) {
-            //If file extension is "php"
+            //If the file extension is "php"
             if (pathinfo($file, PATHINFO_EXTENSION) === 'php') {
                 //Set variable actionName to the file name without extension
                 $actionName = pathinfo($file, PATHINFO_FILENAME);
-                //Load action file to the actions array
+                //Load an action file to the action array
                 $this->actions[$actionName] = require(__DIR__ . "/Actions/" . $file);
-                $this->LonaDB->Logger->Info("Loaded Networking action from file '".$actionName."'");
+                $this->lonaDB->logger->Info("Loaded Networking action from file '".$actionName."'");
             }
         }
     }
 
     public function startSocket() : void {
         //Check if the socket is already running
-        if($this->LonaDB->SocketRunning) return;
+        if($this->socketRunning) return;
 
         //Initialize the socket
         $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -69,47 +69,47 @@ class Server {
 
         //Check if there was an error while initializing the socket
         if ($this->socket === false) {
-            $this->LonaDB->Logger->Error("Failed to create socket: " . socket_strerror(socket_last_error()));
+            $this->lonaDB->logger->Error("Failed to create socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
         //Try binding the socket to the desired IP and port
         if (!socket_bind($this->socket, $this->address, $this->port)) {
-            $this->LonaDB->Logger->Error("Failed to bind socket: " . socket_strerror(socket_last_error()));
+            $this->lonaDB->logger->Error("Failed to bind socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
         //Try to listen for clients
         if (!socket_listen($this->socket)) {
-            $this->LonaDB->Logger->Error("Failed to listen on socket: " . socket_strerror(socket_last_error()));
+            $this->lonaDB->logger->Error("Failed to listen on socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
         //Tell the PluginManager to load the plugins
-        $this->LonaDB->Logger->Info("PluginManager: Starting to load plugins...");
-        $this->LonaDB->LoadPlugins();
+        $this->lonaDB->logger->Info("PluginManager: Starting to load plugins...");
+        $this->lonaDB->LoadPlugins();
 
-        $this->LonaDB->Logger->Start("Server running on port ".$this->port);
-        $this->SocketRunning = true;
+        $this->lonaDB->logger->Start("Server running on port ".$this->port);
+        $this->socketRunning = true;
 
         while (true) {
             //Accept the connections
             $client = socket_accept($this->socket);
-            //If cannot accept connections
+            //If you cannot accept connections
             if ($client === false) {
-                $this->LonaDB->Logger->Error("Failed to accept client connection: " . socket_strerror(socket_last_error()));
+                $this->lonaDB->logger->Error("Failed to accept client connection: " . socket_strerror(socket_last_error()));
                 continue;
             }
 
             //Read data form clients
             $data = socket_read($client, 1024);
-            //If cannot read data
+            //If you cannot read data
             if ($data === false) {
-                $this->LonaDB->Logger->Error("Failed to read data from client: " . socket_strerror(socket_last_error()));
+                $this->lonaDB->logger->Error("Failed to read data from client: " . socket_strerror(socket_last_error()));
                 continue;
             }
 
-            //Handle data recieved from client
+            //Handle data received from a client
             $this->handleData($data, $client);
         }
 
@@ -151,16 +151,16 @@ class Server {
             $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
 
             //Try logging in with the username and decrypted password
-            $login = $this->LonaDB->UserManager->CheckPassword($data['login']['name'], $password);
+            $login = $this->lonaDB->userManager->CheckPassword($data['login']['name'], $password);
 
-            //Check if login was successfull
+            //Check if login was successful
             if (!$login) {
                 $response = json_encode(["success" => false, "err" => "login_error", "process" => $data['process']]);
                 socket_write($client, $response);
                 return;
             }
 
-            //Check if requested action exists
+            //Check if the requested action exists
             if (!$this->actions[$data['action']]) {
                 $response = json_encode(["success" => false, "err" => "action_not_found"]);
                 socket_write($client, $response);
@@ -169,12 +169,12 @@ class Server {
 
             try {
                 //Run action
-                $this->actions[$data['action']]->Run($this->LonaDB, $data, $client);
+                $this->actions[$data['action']]->run($this->lonaDB, $data, $client);
             } catch (Exception $e) {
-                $this->LonaDB->Loggin->Error($e->getMessage());
+                $this->lonaDB->logger->error($e->getMessage());
             }
         } catch (Exception $e) {
-            $this->LonaDB->Loggin->Error($e->getMessage());
+            $this->lonaDB->logger->error($e->getMessage());
         }
     }
 }

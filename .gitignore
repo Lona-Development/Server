@@ -2,3 +2,5 @@ build/*
 src/vendor/
 run
 build-phar
+.idea
+src/composer.phar

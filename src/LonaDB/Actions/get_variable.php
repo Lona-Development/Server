@@ -1,6 +1,12 @@
 <?php
 
-return new class {
+use LonaDB\Interfaces\ActionInterface;
+use LonaDB\Traits\ActionTrait;
+
+return new class implements ActionInterface {
+
+    use ActionTrait;
+
     public function run($LonaDB, $data, $client) : bool {
         //Check if parameters have been set
         if (!$data['table']['name'] || !$data['variable']['name'])
@@ -41,17 +47,5 @@ return new class {
         }
         //Send response
         return $this->Send($client, $response);
-    }
-
-    private function Send ($client, $responseArray) : bool {
-        //Convert response array to JSON object
-        $response = json_encode($responseArray);
-        //Send response and close socket
-        socket_write($client, $response);
-        socket_close($client);
-        //Return state
-        $bool = false;
-        if($responseArray['success']) $bool = true;
-        return $bool;
     }
 };

@@ -6,19 +6,25 @@ use LonaDB\LonaDB;
 //TODO: Refactoring the eval action
 
 
-return new class {
-    public function run($LonaDB, $data, $client) : void {
-        //Check if user is root (only root is allowed to use eval)
-        if ($LonaDB->UserManager->GetRole($data['login']['name']) !== "Superuser") {
+use LonaDB\Interfaces\ActionInterface;
+use LonaDB\Traits\ActionTrait;
+
+return new class implements ActionInterface {
+
+    use ActionTrait;
+
+    public function run(LonaDB $lonaDB, $data, $client) : bool {
+        //Check if the user is root (only root is allowed to use eval)
+        if ($lonaDB->userManager->getRole($data['login']['name']) !== "Superuser") {
             //Send response
             $this->sendErrorResponse($client, "not_root", $data['process']);
-            return;
+            return false;
         }
-        //Generate eval script to create a class with the desired function
+        //Generate an eval script to create a class with the desired function
         $functionName = $data['process'];
         $evalFunction = "
             \$functions['$functionName'] = new class {
-                public function Execute(\$LonaDB) {
+                public function Execute(\$lonaDB) {
                     " . $data['function'] . "
                 }
             };
@@ -28,7 +34,7 @@ return new class {
             eval($evalFunction);
             try {
                 //Execute the function
-                $answer = $functions[$functionName]->Execute($LonaDB);
+                $answer = $functions[$functionName]->Execute($lonaDB);
             } catch (Exception $e) {
                 //Catch errors
                 $answer = $e->getMessage();
@@ -42,11 +48,12 @@ return new class {
         // Remove the function from the $functions array
         unset($functions[$functionName]);
         //Run plugin event
-        $LonaDB->PluginManager->RunEvent($data['login']['name'], "eval", [ "content" => $data['function'] ]);
+        $lonaDB->pluginManager->runEvent($data['login']['name'], "eval", [ "content" => $data['function'] ]);
+        return true;
     }
 
     private function sendErrorResponse($client, $error, $process): void {
-        //Create response array
+        //Create a response array
         $response = json_encode(["success" => false, "err" => $error, "process" => $process]);
         //Send response and close socket
         socket_write($client, $response);
@@ -54,7 +61,7 @@ return new class {
     }
 
     private function sendSuccessResponse($client, $response, $process): void {
-        //Create response array
+        //Create a response array
         $response = json_encode(["success" => true, "response" => $response, "process" => $process]);
         //Send response and close socket
         socket_write($client, $response);
