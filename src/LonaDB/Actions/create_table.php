@@ -10,7 +10,7 @@ return new class implements ActionInterface {
 
     public function run(LonaDB $lonaDB, $data, $client) : bool {
         //Check if the user is allowed to create tables
-        if (!$lonaDB->userManager->CheckPermission($data['login']['name'], "table_create"))
+        if (!$lonaDB->userManager->checkPermission($data['login']['name'], "table_create"))
             return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
         //Check if the table name has been set
         if (empty($data['table']['name']))
@@ -19,11 +19,11 @@ return new class implements ActionInterface {
         if(str_starts_with($data['table']['name'], "system.") && $data['login']['name'] !== "root")
             return $this->send($client, ["success" => false, "err" => "not_root", "process" => $data['process']]);
         //Check if the table already exists
-        $table = $lonaDB->tableManager->CreateTable($data['table']['name'], $data['login']['name']);
+        $table = $lonaDB->tableManager->createTable($data['table']['name'], $data['login']['name']);
         if(!$table)
             return $this->send($client, ["success" => false, "err" => "table_exists", "process" => $data['process']]);
         //Run plugin event
-        $lonaDB->pluginManager->RunEvent($data['login']['name'], "tableCreate", [ "name" => $data['table']['name'] ]);
+        $lonaDB->pluginManager->runEvent($data['login']['name'], "tableCreate", [ "name" => $data['table']['name'] ]);
         return $this->send($client, ["success" => true, "process" => $data['process']]);
     }
 };

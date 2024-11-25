@@ -1,24 +1,25 @@
 <?php
 
 use LonaDB\Interfaces\ActionInterface;
+use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
 
 return new class implements ActionInterface {
 
     use ActionTrait;
 
-    public function run($LonaDB, $data, $client) : bool {
+    public function run(LonaDB $lonaDB, $data, $client) : bool {
         //Check if parameters have been set
         if (!$data['table']['name'] || !$data['variable']['name'])
-            return $this->Send($client, ["success" => false, "err" => "missing_parameters", "process" => $data['process']]);
+            return $this->send($client, ["success" => false, "err" => "missing_parameters", "process" => $data['process']]);
         //Check if table exists
-        if(!$LonaDB->TableManager->GetTable($data['table']['name']))
-            return $this->Send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
+        if(!$lonaDB->tableManager->getTable($data['table']['name']))
+            return $this->send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
         //Check if user is allowed to read in desired table
-        if (!$LonaDB->TableManager->GetTable($data['table']['name'])->CheckPermission($data['login']['name'], "read"))
-            return $this->Send($client, ["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
+        if (!$lonaDB->tableManager->getTable($data['table']['name'])->checkPermission($data['login']['name'], "read"))
+            return $this->send($client, ["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
         //Get variable value
-        $value = $LonaDB->TableManager->GetTable($data['table']['name'])->Get($data['variable']['name'], $data['login']['name']);
+        $value = $lonaDB->tableManager->getTable($data['table']['name'])->get($data['variable']['name'], $data['login']['name']);
         //Create response array
         $response = [
             "variable" => [
@@ -32,7 +33,7 @@ return new class implements ActionInterface {
         if (is_array($value) && isset($value['err'])) {
             $value['process'] = $data['process'];
             //Send response
-            return $this->Send($client, $value);
+            return $this->send($client, $value);
         }
         //Check if variable exists
         if ($value === null) 
@@ -46,6 +47,6 @@ return new class implements ActionInterface {
             $response['success'] = true;
         }
         //Send response
-        return $this->Send($client, $response);
+        return $this->send($client, $response);
     }
 };

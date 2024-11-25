@@ -74,7 +74,7 @@ class PluginManager
                                 $this->load_classphp($path, $phar);
 
                                 //Add it to the Plugins array
-                                eval("\$this->Plugins[\$conf['name']] = new ".$conf['main']['namespace']."\\".$conf['main']['class']."(\$this->LonaDB, \$conf['name'], \$conf['version']);");
+                                eval("\$this->plugins[\$conf['name']] = new ".$conf['main']['namespace']."\\".$conf['main']['class']."(\$this->lonaDB, \$conf['name'], \$conf['version']);");
 
                                 // Run plugin onEnable event directly, no need for fork
                                 $this->plugins[$conf['name']]->onEnable();
@@ -111,6 +111,16 @@ class PluginManager
                                 try {
                                     //Load all PHP files in the folder
                                     $this->load_classphp("plugins/".$r."/");
+
+                                    //Check if the plugin should be built
+                                    if($conf['build']){
+                                        //Build the PHAR
+                                        $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0, "plugins/".$conf['name']."-".$conf['version'].".phar");
+                                        $phar->buildFromDirectory("plugins/".$r."/");                            
+                                        $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php', $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
+                                        $phar->setAlias($conf['name']."-".$conf['version'].".phar");
+                                        $phar->stopBuffering();
+                                    }
 
                                     //Add a plugin to the plugin array
                                     eval("\$this->plugins[\$conf['name']] = new ".$conf['main']['namespace']."\\".$conf['main']['class']."(\$this->lonaDB, \$conf['name'], \$conf['version']);");
@@ -184,7 +194,7 @@ class PluginManager
         }
     }
 
-    public function RunEvent(string $executor, string $event, array $arguments): void
+    public function runEvent(string $executor, string $event, array $arguments): void
     {
         if (!is_array($arguments)) {
             $this->lonaDB->logger->Error("Invalid arguments provided for event: ".$event);
@@ -201,10 +211,10 @@ class PluginManager
                     $pluginInstance->onTableDelete($executor, $arguments['name']);
                     break;
                 case "valueSet":
-                    $pluginInstance->onValueSet($executor, $arguments['name'], $arguments['value']);
+                    $pluginInstance->onValueSet($executor, $arguments['table'], $arguments['name'], $arguments['value']);
                     break;
                 case "valueRemove":
-                    $pluginInstance->onValueRemove($executor, $arguments['name']);
+                    $pluginInstance->onValueRemove($executor, $arguments['table'], $arguments['name']);
                     break;
                 case "functionCreate":
                     $pluginInstance->onFunctionCreate($executor, $arguments['name'], $arguments['content']);
@@ -225,10 +235,10 @@ class PluginManager
                     $pluginInstance->onEval($executor, $arguments['content']);
                     break;
                 case "permissionAdd":
-                    $pluginInstance->onPermissionAdd($executor, $arguments['user'], $arguments['permission']);
+                    $pluginInstance->onPermissionAdd($executor, $arguments['user'], $arguments['name']);
                     break;
                 case "permissionRemove":
-                    $pluginInstance->onPermissionRemove($executor, $arguments['user'], $arguments['permission']);
+                    $pluginInstance->onPermissionRemove($executor, $arguments['user'], $arguments['name']);
                     break;
             }
         }

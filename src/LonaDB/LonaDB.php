@@ -42,8 +42,8 @@ class LonaDB {
             echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
             error_reporting(E_ERROR | E_PARSE);
             
-            $this->logger->InfoCache("LonaDB v4.6.0");
-            $this->logger->InfoCache("Looking for config.");
+            $this->logger->infoCache("LonaDB v4.6.0");
+            $this->logger->infoCache("Looking for config.");
 
             //Create an empty configuration.lona if it doesn't exist.
             //File_exists gave an error because we run LonaDB as a phar.
@@ -55,7 +55,7 @@ class LonaDB {
                 //Split the encrypted content from the IV
                 $parts = explode(':', file_get_contents("./configuration.lona"));
                 //Decrypt the config using the EncryptionKey and IV
-                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->EncryptionKey, 0, base64_decode($parts[1]));
+                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->encryptionKey, 0, base64_decode($parts[1]));
 
                 //If the given EncryptionKey didn't work, throw an error and exit
                 if(!json_decode($decrypted, true)) {
@@ -67,11 +67,11 @@ class LonaDB {
 
             //If the configuration was decrypted successfully
             if($run){
-                $this->logger->InfoCache("Loading config.");
+                $this->logger->infoCache("Loading config.");
                 //Split encrypted from IV
                 $parts = explode(':', file_get_contents("./configuration.lona"));
                 //Decrypt using EncryptionKey and IV
-                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->EncryptionKey, 0, base64_decode($parts[1]));
+                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->encryptionKey, 0, base64_decode($parts[1]));
                 //Load the config
                 $this->config = json_decode($decrypted, true);
 
@@ -83,18 +83,18 @@ class LonaDB {
                 }
 
                 //Check if logging to a file is enabled, if it is, write logs to the file
-                $this->logger->LoadLogger();
+                $this->logger->loadLogger();
                 //Dop the cached logs to the file (if enabled)
-                $this->logger->DropCache();
+                $this->logger->dropCache();
 
                 //Initialize Managers
-                $this->logger->Info("Loading TableManager class.");
+                $this->logger->info("Loading TableManager class.");
                 $this->tableManager = new TableManager($this);
-                $this->logger->Info("Loading UserManager class.");
+                $this->logger->info("Loading UserManager class.");
                 $this->userManager = new UserManager($this);
-                $this->logger->Info("Loading FunctionManager class.");
+                $this->logger->info("Loading FunctionManager class.");
                 $this->functionManager = new FunctionManager($this);
-                $this->logger->Info("Loading PluginManager class.");
+                $this->logger->info("Loading PluginManager class.");
                 $this->pluginManager = new PluginManager($this);
 
                 //If the server is already running,
@@ -117,7 +117,7 @@ class LonaDB {
         if($this->pluginManager->loaded) return;
 
         //Load Plugins
-        $this->pluginManager->LoadPlugins();
+        $this->pluginManager->loadPlugins();
     }
 
     //Setup script

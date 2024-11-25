@@ -16,9 +16,9 @@ class PluginBase
     private string $name;
     private string $version;
 
-    public function __construct(LonaDB $LonaDB, string $name, string $version)
+    public function __construct(LonaDB $lonaDB, string $name, string $version)
     {
-        $this->lonaDB = $LonaDB;
+        $this->lonaDB = $lonaDB;
         $this->name = $name;
         $this->version = $version;
 
@@ -52,7 +52,7 @@ class PluginBase
     //Events
     public function onEnable(): void
     {
-        $this->GetLogger()->Info("Plugin '".$this->name."' has been loaded");
+        $this->getLogger()->Info("Plugin '".$this->name."' has been loaded");
     }
 
     public function onTableCreate(string $executor, string $name): void

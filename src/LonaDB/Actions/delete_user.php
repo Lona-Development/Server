@@ -13,15 +13,15 @@ return new class implements ActionInterface {
         if(!$data['user']['name'])
             return $this->send($client, ["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
         //Check if a user is allowed to delete users
-        if(!$lonaDB->userManager->CheckPermission($data['login']['name'], "user_delete"))
+        if(!$lonaDB->userManager->checkPermission($data['login']['name'], "user_delete"))
             return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
         //Check if a user exists
-        if(!$lonaDB->userManager->CheckUser($data['user']['name']))
+        if(!$lonaDB->userManager->checkUser($data['user']['name']))
             return $this->send($client, ["success" => false, "err" => "user_doesnt_exist", "process" => $data['process']]);
         //Delete user
         $result = $lonaDB->userManager->deleteUser($data['user']['name']);
         //Run plugin event
-        $lonaDB->pluginManager->RunEvent($data['login']['name'], "userDelete", [ "name" => $data['table']['name'] ]);
+        $lonaDB->pluginManager->runEvent($data['login']['name'], "userDelete", [ "name" => $data['user']['name'] ]);
         //Send response
         return $this->send($client, ["success" => $result, "process" => $data['process']]);
     }

@@ -12,7 +12,7 @@ return new class implements ActionInterface {
     {
         //Check if a user is Administrator or Superuser
         if ($lonaDB->userManager->getRole($data['login']['name']) !== "Superuser" && $lonaDB->userManager->getRole($data['login']['name']) !== "Administrator") {
-            return $this->Send($client, ["success" => false, "err" => "not_allowed", "process" => $data['process']]);
+            return $this->send($client, ["success" => false, "err" => "not_allowed", "process" => $data['process']]);
         }
         //Check if a user exists
         if (!$lonaDB->userManager->checkUser($data['user'])) {
@@ -27,6 +27,6 @@ return new class implements ActionInterface {
             "process" => $data['process']
         ];
         //Send response
-        return $this->Send($client, $response);
+        return $this->send($client, $response);
     }
 };

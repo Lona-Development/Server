@@ -1,12 +1,9 @@
 <?php
 
 require 'vendor/autoload.php';
-use LonaDB\LonaDB;
-
-//TODO: Refactoring the eval action
-
 
 use LonaDB\Interfaces\ActionInterface;
+use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
 
 return new class implements ActionInterface {
@@ -24,7 +21,7 @@ return new class implements ActionInterface {
         $functionName = $data['process'];
         $evalFunction = "
             \$functions['$functionName'] = new class {
-                public function Execute(\$lonaDB) {
+                public function execute(\$lonaDB) {
                     " . $data['function'] . "
                 }
             };
@@ -34,7 +31,7 @@ return new class implements ActionInterface {
             eval($evalFunction);
             try {
                 //Execute the function
-                $answer = $functions[$functionName]->Execute($lonaDB);
+                $answer = $functions[$functionName]->execute($lonaDB);
             } catch (Exception $e) {
                 //Catch errors
                 $answer = $e->getMessage();

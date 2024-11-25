@@ -54,7 +54,7 @@ class Server {
                 $actionName = pathinfo($file, PATHINFO_FILENAME);
                 //Load an action file to the action array
                 $this->actions[$actionName] = require(__DIR__ . "/Actions/" . $file);
-                $this->lonaDB->logger->Info("Loaded Networking action from file '".$actionName."'");
+                $this->lonaDB->logger->info("Loaded Networking action from file '".$actionName."'");
             }
         }
     }
@@ -69,27 +69,27 @@ class Server {
 
         //Check if there was an error while initializing the socket
         if ($this->socket === false) {
-            $this->lonaDB->logger->Error("Failed to create socket: " . socket_strerror(socket_last_error()));
+            $this->lonaDB->logger->error("Failed to create socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
         //Try binding the socket to the desired IP and port
         if (!socket_bind($this->socket, $this->address, $this->port)) {
-            $this->lonaDB->logger->Error("Failed to bind socket: " . socket_strerror(socket_last_error()));
+            $this->lonaDB->logger->error("Failed to bind socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
         //Try to listen for clients
         if (!socket_listen($this->socket)) {
-            $this->lonaDB->logger->Error("Failed to listen on socket: " . socket_strerror(socket_last_error()));
+            $this->lonaDB->logger->error("Failed to listen on socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
         //Tell the PluginManager to load the plugins
-        $this->lonaDB->logger->Info("PluginManager: Starting to load plugins...");
-        $this->lonaDB->LoadPlugins();
+        $this->lonaDB->logger->info("PluginManager: Starting to load plugins...");
+        $this->lonaDB->loadPlugins();
 
-        $this->lonaDB->logger->Start("Server running on port ".$this->port);
+        $this->lonaDB->logger->start("Server running on port ".$this->port);
         $this->socketRunning = true;
 
         while (true) {
@@ -97,7 +97,7 @@ class Server {
             $client = socket_accept($this->socket);
             //If you cannot accept connections
             if ($client === false) {
-                $this->lonaDB->logger->Error("Failed to accept client connection: " . socket_strerror(socket_last_error()));
+                $this->lonaDB->logger->error("Failed to accept client connection: " . socket_strerror(socket_last_error()));
                 continue;
             }
 
@@ -105,7 +105,7 @@ class Server {
             $data = socket_read($client, 1024);
             //If you cannot read data
             if ($data === false) {
-                $this->lonaDB->logger->Error("Failed to read data from client: " . socket_strerror(socket_last_error()));
+                $this->lonaDB->logger->error("Failed to read data from client: " . socket_strerror(socket_last_error()));
                 continue;
             }
 
@@ -116,7 +116,7 @@ class Server {
         socket_close($this->socket);
     }
 
-    public function Stop() : void {
+    public function stop() : void {
         if ($this->socket) {
             socket_close($this->socket);
         }

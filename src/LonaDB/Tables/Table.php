@@ -38,7 +38,7 @@ class Table
             $this->owner = $temp["owner"];
         } //Instance is used to create the table
         else {
-            $this->lonaDB->logger->Table("Trying to generate table '".$name."'");
+            $this->lonaDB->logger->table("Trying to generate table '".$name."'");
 
             //Load table information and create an empty data and permissions array
             $this->file = $name;
@@ -67,7 +67,7 @@ class Table
 
     public function setOwner(string $name, string $user): bool
     {
-        $this->lonaDB->logger->Table("(".$this->file.") User '".$user."' is trying to change the owner to '".$name."'");
+        $this->lonaDB->logger->table("(".$this->file.") User '".$user."' is trying to change the owner to '".$name."'");
         //Check if the executing user is either root or the owner of the table
         if ($user !== "root" && $user !== $this->owner) {
             return false;
@@ -155,7 +155,7 @@ class Table
     {
         //Check if the user is table owner/administrator, global administrator or superuser
         if ($user !== $this->owner && !$this->checkPermission($user,
-                "admin") && $this->lonaDB->userManager->GetRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
+                "admin") && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
             return false;
         }
 
@@ -169,7 +169,7 @@ class Table
     {
         //Check if the user is table owner/administrator, global administrator or superuser
         if ($user !== $this->owner && !$this->checkPermission($user,
-                "admin") && $this->lonaDB->userManager->GetRole($user) !== "Administrator" && $this->lonaDB->userManager->GetRole($user) !== "Superuser") {
+                "admin") && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
             return false;
         }
 

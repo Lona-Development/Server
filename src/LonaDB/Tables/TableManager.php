@@ -44,7 +44,7 @@ class TableManager
         //No table files exist
         if ($counter === 0) {
             //Create default table
-            $this->CreateTable("Default", "root");
+            $this->createTable("Default", "root");
         }
     }
 
@@ -67,17 +67,17 @@ class TableManager
         if ($user !== "") {
             foreach ($this->tables as $table) {
                 //Check if the user has read or write permissions on the table => Push the table to the array
-                if ($table->CheckPermission($user, "write")) {
-                    $tables[] = $table->Name;
+                if ($table->checkPermission($user, "write")) {
+                    $tables[] = $table->name;
                 } else {
-                    if ($table->CheckPermission($user, "read")) {
-                        $tables[] = $table->Name;
+                    if ($table->checkPermission($user, "read")) {
+                        $tables[] = $table->name;
                     }
                 }
             }
         } else {
             foreach ($this->tables as $table) {
-                $tables[] = $table->Name;
+                $tables[] = $table->name;
             }
         }
 
@@ -88,9 +88,7 @@ class TableManager
     public function createTable(string $name, string $owner): bool
     {
         //Check if there already is a table with the exact same name
-        if ($this->GetTable($name)) {
-            return false;
-        }
+        if ($this->getTable($name)) return false;
 
         //Create a table instance
         $this->tables[$name] = new Table($this->lonaDB, true, $name, $owner);
@@ -105,9 +103,8 @@ class TableManager
         }
 
         //Check if the deleting user is the table owner, a global administrator or superuser
-        if ($user !== $this->tables[$name]->getOwner() && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
+        if ($user !== $this->tables[$name]->getOwner() && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser")
             return false;
-        }
 
         //Delete table file and instance from the table array
         unlink("data/tables/".$name.".lona");

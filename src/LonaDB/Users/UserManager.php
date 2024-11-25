@@ -91,7 +91,7 @@ class UserManager
         return $users;
     }
 
-    public function CreateUser(string $name, string $password): bool
+    public function createUser(string $name, string $password): bool
     {
         //If username is root, abort
         if ($name === "root") {
@@ -178,7 +178,7 @@ class UserManager
     public function checkPermission(string $name, string $permission, string $user = ""): bool
     {
         //Check if a user exists
-        if (!$this->CheckUser($name)) {
+        if (!$this->checkUser($name)) {
             return false;
         }
         //If the user is an Administrator or Superuser, they are allowed to do anything
@@ -209,7 +209,7 @@ class UserManager
             return false;
         }
         //Check if a user exists
-        if (!$this->CheckUser($name)) {
+        if (!$this->checkUser($name)) {
             return false;
         }
         //Add the permission to the user
@@ -227,7 +227,7 @@ class UserManager
             return false;
         }
         //Check if a user exists
-        if (!$this->CheckUser($name)) {
+        if (!$this->checkUser($name)) {
             return false;
         }
         //Remove the permission from the user

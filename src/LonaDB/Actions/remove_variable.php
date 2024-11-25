@@ -33,7 +33,7 @@ return new class implements ActionInterface {
         $lonaDB->tableManager->getTable($data['table']['name'])->Delete($data['variable']['name'],
             $data['login']['name']);
         //Run plugin event
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "valueRemove", ["name" => $data['variable']['name']]);
+        $lonaDB->pluginManager->runEvent($data['login']['name'], "valueRemove", [ "table" => $data['table']['name'], "name" => $data['variable']['name']]);
         //Send response
         return $this->send($client, ["success" => true, "process" => $data['process']]);
     }
