@@ -5,37 +5,37 @@ namespace LonaDB;
 //Load autoload from composer
 require 'vendor/autoload.php';
 
-//Load Main file
+//Load the Main file
 use LonaDB\LonaDB;
 
 class Logger{
     //Create all variables
-    private $LogFile;
+    private $logFile;
     private string $infoCache = "";
-    private bool $Start = false;
+    private bool $start = false;
 
-    private LonaDB $LonaDB;
+    private LonaDB $lonaDB;
 
     public function __construct(LonaDB $lonaDB){
-        $this->LonaDB = $lonaDB;
+        $this->lonaDB = $lonaDB;
     }
 
     private function log(string $message, string $color = "") : void {
         echo($color.$message."\e[0m");
         //Write logs to file if enabled
-        if($this->LonaDB->config["logging"]) fwrite($this->LogFile, $message);
+        if($this->lonaDB->config["logging"]) fwrite($this->logFile, $message);
     }
 
-    public function LoadLogger() : void {
-        //Create file instance if logging to file is enabled
-        if($this->LonaDB->config["logging"]) $this->LogFile = fopen('log.txt','a');
+    public function loadLogger() : void {
+        //Create a file instance if logging to file is enabled
+        if($this->lonaDB->config["logging"]) $this->logFile = fopen('log.txt','a');
     }
 
-    public function Start($msg) : void {
+    public function start($msg) : void {
         //Check if the Startup message has already been sent
-        if(!$this->Start){
+        if(!$this->start){
             //Declare that the Startup message has been sent
-            $this->Start = true;
+            $this->start = true;
             
             //Send the Startup message
             $log = date("Y-m-d h:i:s")." [Startup] ".$msg."\n";
@@ -43,57 +43,57 @@ class Logger{
         }
     }
 
-    public function InfoCache($msg) : void {
+    public function infoCache($msg) : void {
         //Log InfoCache into the terminal
         $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
         echo($log);
 
-        //Add message to the InfoCache variable
+        //Add a message to the InfoCache variable
         $this->infoCache = $this->infoCache . $log;
     }
 
-    public function DropCache() : void {
+    public function dropCache() : void {
         //Drop all of InfoCache's content into the log file if enabled
-        if($this->LonaDB->config["logging"]) fwrite($this->LogFile, $this->infoCache);
+        if($this->lonaDB->config["logging"]) fwrite($this->logFile, $this->infoCache);
     }
 
-    //Logger funcitons
-    public function Warning($msg) : void {
+    //Logger functions
+    public function warning($msg) : void {
         $log = date("Y-m-d h:i:s")." [WARNING] ".$msg."\n";
         $this->log($log, "\033[33m");
     }
 
-    public function Error($msg) : void {
+    public function error($msg) : void {
         $log = date("Y-m-d h:i:s")." [ERROR] ".$msg."\n";
         $this->log($log, "\033[31m");
     }
 
-    public function Create($msg) : void {
+    public function create($msg) : void {
         $log = date("Y-m-d h:i:s")." [CREATE] ".$msg."\n";
         $this->log($log, "\033[32m");
     }
 
-    public function Load($msg) : void {
+    public function load($msg) : void {
         $log = date("Y-m-d h:i:s")." [LOAD] ".$msg."\n";
         $this->log($log);
     }
 
-    public function Info($msg) : void {
+    public function info($msg) : void {
         $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
         $this->log($log, "\033[34m");
     }
 
-    public function Table($msg) : void {
+    public function table($msg) : void {
         $log = date("Y-m-d h:i:s")." [TABLE] ".$msg."\n";
         $this->log($log);
     }
 
-    public function User($msg) : void {
+    public function user($msg) : void {
         $log = date("Y-m-d h:i:s")." [USER] ".$msg."\n";
         $this->log($log);
     }
 
-    public function Plugin($name, $msg) : void {
+    public function plugin($name, $msg) : void {
         $log = date("Y-m-d h:i:s")." [Plugin] ".$name.": ".$msg."\n";
         $this->log($log,"\033[35m");
     }

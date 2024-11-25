@@ -1,25 +1,20 @@
 <?php
 
-return new class {
-    public function run($LonaDB, $data, $client) : bool {
-        //Check if user is allowed to request a users array
-        if(!$LonaDB->UserManager->CheckPermission($data['login']['name'], "get_users"))
-            return $this->Send($client, ["success" => false, "err" => "missing_permission", "process" => $data['process']]);
-        //Get users array
-        $users = $LonaDB->UserManager->ListUsers();
-        //Send response
-        return $this->Send($client, ["success" => true, "users" => $users, "process" => $data['process']]);
-    }
+use LonaDB\Interfaces\ActionInterface;
+use LonaDB\LonaDB;
+use LonaDB\Traits\ActionTrait;
 
-    private function Send ($client, $responseArray) : bool {
-        //Convert response array to JSON object
-        $response = json_encode($responseArray);
-        //Send response and close socket
-        socket_write($client, $response);
-        socket_close($client);
-        //Return state
-        $bool = false;
-        if($responseArray['success']) $bool = true;
-        return $bool;
+return new class implements ActionInterface {
+
+    use ActionTrait;
+
+    public function run(LonaDB $lonaDB, $data, $client) : bool {
+        //Check if a user is allowed to request a user's array
+        if(!$lonaDB->userManager->CheckPermission($data['login']['name'], "get_users"))
+            return $this->send($client, ["success" => false, "err" => "missing_permission", "process" => $data['process']]);
+        //Get users' array
+        $users = $lonaDB->userManager->ListUsers();
+        //Send response
+        return $this->send($client, ["success" => true, "users" => $users, "process" => $data['process']]);
     }
 };
