@@ -2,7 +2,7 @@
 
 namespace LonaDB\Users;
 
-//Encryption/decryption 
+//Encryption/decryption
 define('AES_256_CBC', 'aes-256-cbc');
 
 require 'vendor/autoload.php';
@@ -14,11 +14,15 @@ class UserManager
     private array $users = [];
     private LonaDB $lonaDB;
 
+    /**
+     * Constructor for the UserManager class.
+     *
+     * @param  LonaDB  $lonaDB  The LonaDB instance.
+     */
     public function __construct(LonaDB $lonaDB)
     {
         $this->lonaDB = $lonaDB;
 
-        //Create folder data if it doesn't exist
         if (!is_dir("data/")) {
             mkdir("data/");
         }
@@ -46,6 +50,13 @@ class UserManager
             base64_decode($parts[1])), true);
     }
 
+    /**
+     * Checks if the provided password matches the user's password.
+     *
+     * @param  string  $name  The username.
+     * @param  string  $password  The password to check.
+     * @return bool Returns true if the password is correct, false otherwise.
+     */
     public function checkPassword(string $name = "", string $password = ""): bool
     {
         //If the username is root, check for the root password
@@ -60,29 +71,35 @@ class UserManager
         if ($this->users[$name]["password"] != $password) {
             return false;
         }
-        //All checks successfully
         return true;
     }
 
+    /**
+     * Checks if a user exists.
+     *
+     * @param  string  $name  The username to check.
+     * @return bool Returns true if the user exists, false otherwise.
+     */
     public function checkUser(string $name): bool
     {
         //Check if the username is root
         if ($name == "root") {
             return true;
         }
-        //Check if the user exists
         if (!$this->users[$name]) {
             return false;
         }
-        //User does exist
         return true;
     }
 
+    /**
+     * Lists all users and their roles.
+     *
+     * @return array An array of usernames and their roles.
+     */
     public function listUsers(): array
     {
-        //Empty array for users & roles
         $users = [];
-        //Loop through all Users
         foreach ($this->users as $name => $user) {
             //Username => Role
             //Example: Hymmel => Administrator
@@ -91,6 +108,13 @@ class UserManager
         return $users;
     }
 
+    /**
+     * Creates a new user.
+     *
+     * @param  string  $name  The username.
+     * @param  string  $password  The password for the user.
+     * @return bool Returns true if the user is created successfully, false otherwise.
+     */
     public function createUser(string $name, string $password): bool
     {
         //If username is root, abort
@@ -112,11 +136,16 @@ class UserManager
             ]
         );
         $this->lonaDB->logger->user("User '".$name."' has been created");
-        //Save users' array to Users.lona
         $this->save();
         return true;
     }
 
+    /**
+     * Deletes a user.
+     *
+     * @param  string  $name  The username to delete.
+     * @return bool Returns true if the user is deleted successfully, false otherwise.
+     */
     public function deleteUser(string $name): bool
     {
         //If username is root, abort
@@ -129,14 +158,19 @@ class UserManager
             $this->lonaDB->logger->error("User '".$name."' doesn't exist");
             return false;
         }
-        //Delete user from users array
         unset($this->users[$name]);
         $this->lonaDB->logger->user("Deleted user '".$name."'");
-        //Save users' array to Users.lona
-        $this->Save();
+        $this->save();
         return true;
     }
 
+    /**
+     * Sets the role of a user.
+     *
+     * @param  string  $name  The username.
+     * @param  string  $role  The role to set.
+     * @return bool Returns true if the role is set successfully, false otherwise.
+     */
     public function setRole(string $name, string $role): bool
     {
         //If the username is root or the desired role is Superuser, abort
@@ -150,14 +184,18 @@ class UserManager
         if (!$this->checkUser($name)) {
             return false;
         }
-        //Set user role
         $this->users[$name]['role'] = $role;
-        //Save users' array to Users.
         $this->save();
         return true;
     }
 
-    public function getRole(string $name)
+    /**
+     * Gets the role of a user.
+     *
+     * @param  string  $name  The username.
+     * @return string|false The role of the user, or false if the user does not exist.
+     */
+    public function getRole(string $name): false|string
     {
         //Root is a superuser
         if ($name == "root") {
@@ -171,11 +209,17 @@ class UserManager
         if ($this->users[$name]['role'] == "Superuser") {
             $this->users[$name]['role'] = "User";
         }
-        //Return user role
         return $this->users[$name]['role'];
     }
 
-    public function checkPermission(string $name, string $permission, string $user = ""): bool
+    /**
+     * Checks if a user has a specific permission.
+     *
+     * @param  string  $name  The username.
+     * @param  string  $permission  The permission to check.
+     * @return bool Returns true if the user has the permission, false otherwise.
+     */
+    public function checkPermission(string $name, string $permission): bool
     {
         //Check if a user exists
         if (!$this->checkUser($name)) {
@@ -185,13 +229,19 @@ class UserManager
         if ($this->getRole($name) == "Administrator" || $this->getRole($name) == "Superuser") {
             return true;
         }
-        //Return user permission
+
         if (!$this->users[$name]['permissions'][$permission]) {
             return false;
         }
         return true;
     }
 
+    /**
+     * Gets the permissions of a user.
+     *
+     * @param  string  $name  The username.
+     * @return array The permissions of the user.
+     */
     public function getPermissions(string $name): array
     {
         //If the username is root, return an empty array -> Root is allowed to do anything
@@ -202,6 +252,13 @@ class UserManager
         return $this->users[$name]['permissions'];
     }
 
+    /**
+     * Adds a permission to a user.
+     *
+     * @param  string  $name  The username.
+     * @param  string  $permission  The permission to add.
+     * @return bool Returns true if the permission is added successfully, false otherwise.
+     */
     public function addPermission(string $name, string $permission): bool
     {
         //Check if the username is root -> You cannot add permissions to root
@@ -215,11 +272,17 @@ class UserManager
         //Add the permission to the user
         $this->users[$name]['permissions'][$permission] = true;
         $this->lonaDB->logger->user("Added permission '".$permission."' to user '".$name."'");
-        //Save Users.lona
-        $this->Save();
+        $this->save();
         return true;
     }
 
+    /**
+     * Removes a permission from a user.
+     *
+     * @param  string  $name  The username.
+     * @param  string  $permission  The permission to remove.
+     * @return bool Returns true if the permission is removed successfully, false otherwise.
+     */
     public function removePermission(string $name, string $permission): bool
     {
         //Check if the username is root -> You cannot remove permissions from the root
@@ -233,11 +296,13 @@ class UserManager
         //Remove the permission from the user
         unset($this->users[$name]['permissions'][$permission]);
         $this->lonaDB->logger->User("Removed permission '".$permission."' from user '".$name."'");
-        //Save Users.lona
         $this->save();
         return true;
     }
 
+    /**
+     * Saves the user's array to the Users.lona file.
+     */
     public function save(): void
     {
         //Generate IV

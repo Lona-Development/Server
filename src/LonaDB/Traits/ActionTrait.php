@@ -4,15 +4,18 @@ namespace LonaDB\Traits;
 
 trait ActionTrait
 {
-    function send($client, array $responseArray): bool
+    /**
+     * Sends a response to the client and closes the socket.
+     *
+     * @param mixed $client The client socket to send the response to.
+     * @param array $responseArray The response data to send.
+     * @return bool Returns true if the response indicates success, false otherwise.
+     */
+    function send(mixed $client, array $responseArray): bool
     {
-        //Convert a response array to a JSON object
         $response = json_encode($responseArray);
-        //Send response and close socket
         socket_write($client, $response);
         socket_close($client);
-        //Return state
         return $responseArray['success'];
     }
-
 }

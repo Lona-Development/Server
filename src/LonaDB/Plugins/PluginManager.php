@@ -16,27 +16,35 @@ class PluginManager
     public bool $loaded = false;
     private array $pids;
 
+    /**
+     * Constructor for the PluginManager class.
+     *
+     * @param LonaDB $lonaDB The LonaDB instance.
+     */
     public function __construct(LonaDB $lonaDB)
     {
         $this->lonaDB = $lonaDB;
-        //Initialize plugins array
+        // Initialize plugins array
         $this->plugins = array();
     }
 
+    /**
+     * Loads all plugins from the "plugins/" directory.
+     */
     public function loadPlugins(): void
     {
-        //Check if plugins have already been loaded
+        // Check if plugins have already been loaded
         if ($this->loaded) {
             return;
         }
         $this->loaded = true;
 
-        //Check if the "plugins/" directory exists, create if it doesn't
+        // Check if the "plugins/" directory exists, create if it doesn't
         if (!is_dir("plugins/")) {
             mkdir("plugins/");
         }
 
-        //For all files and folders in "plugins/"
+        // For all files and folders in "plugins/"
         $results = scandir("plugins/");
         foreach ($results as $result) {
             if ($result != "." && $result != "..") {
@@ -45,35 +53,35 @@ class PluginManager
         }
 
         foreach ($results as $r) {
-            //Check if a file ends with ".phar" => Plugin has been compiled
+            // Check if a file ends with ".phar" => Plugin has been compiled
             if (str_ends_with($r, ".phar")) {
-                //Load a PHAR file
+                // Load a PHAR file
                 $phar = new Phar("plugins/".$r, 0);
                 $configFound = false;
 
-                //Loop through all files in the PHAR archive
+                // Loop through all files in the PHAR archive
                 foreach (new RecursiveIteratorIterator($phar) as $file) {
                     //Check for plugin.json
                     if ($file->getFileName() == "plugin.json") {
                         //Get configuration from plugin.json
                         $conf = json_decode(file_get_contents($file->getPathName()), true);
-                        //Generate path variable for the file
+                        // Generate path variable for the file
                         eval("\$path = substr(\$file->getPathName(), 0, -".strlen($file->getFileName()).");");
                         $configFound = true;
                     }
                 }
 
                 if ($configFound) {
-                    //Check the configuration
+                    // Check the configuration
                     if ($conf['main'] && $conf['main']['path'] && $conf['main']['class'] && $conf['main']['namespace'] && $conf['name']) {
-                        //Check if the main file declared in plugin.json exists
+                        // Check if the main file declared in plugin.json exists
                         file_put_contents($path.$conf['main']['path'], file_get_contents($path.$conf['main']['path']));
                         if (file_get_contents($path.$conf['main']['path']) !== "") {
                             try {
-                                //Load PHAR
+                                // Load PHAR
                                 $this->load_classphp($path, $phar);
 
-                                //Add it to the Plugins array
+                                // Add it to the Plugins array
                                 eval("\$this->plugins[\$conf['name']] = new ".$conf['main']['namespace']."\\".$conf['main']['class']."(\$this->lonaDB, \$conf['name'], \$conf['version']);");
 
                                 // Run plugin onEnable event directly, no need for fork
@@ -93,36 +101,36 @@ class PluginManager
             } // Load plugin from folder => Plugin hasn't been compiled
             else {
                 if ($r != "." && $r !== "..") {
-                    //Scan "plugins/$folder"
+                    // Scan "plugins/$folder"
                     $debugScan = scandir("plugins/".$r);
                     $configFound = false;
-                    //Check if plugin.json is inside the folder
+                    // Check if plugin.json is inside the folder
                     if (in_array("plugin.json", $debugScan)) {
                         $conf = json_decode(file_get_contents("plugins/".$r."/plugin.json"), true);
                         $configFound = true;
                     }
                     if ($configFound) {
-                        //Check configuration
+                        // Check configuration
                         if ($conf['main'] && $conf['main']['path'] && $conf['main']['class'] && $conf['main']['namespace'] && $conf['name']) {
-                            //Check if the main file exists
+                            // Check if the main file exists
                             file_put_contents("plugins/".$r."/".$conf['main']['path'],
                                 file_get_contents("plugins/".$r."/".$conf['main']['path']));
                             if (file_get_contents("plugins/".$r."/".$conf['main']['path']) !== "") {
                                 try {
-                                    //Load all PHP files in the folder
+                                    // Load all PHP files in the folder
                                     $this->load_classphp("plugins/".$r."/");
 
-                                    //Check if the plugin should be built
+                                    // Check if the plugin should be built
                                     if($conf['build']){
-                                        //Build the PHAR
+                                        // Build the PHAR
                                         $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0, "plugins/".$conf['name']."-".$conf['version'].".phar");
-                                        $phar->buildFromDirectory("plugins/".$r."/");                            
+                                        $phar->buildFromDirectory("plugins/".$r."/");
                                         $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php', $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
                                         $phar->setAlias($conf['name']."-".$conf['version'].".phar");
                                         $phar->stopBuffering();
                                     }
 
-                                    //Add a plugin to the plugin array
+                                    // Add a plugin to the plugin array
                                     eval("\$this->plugins[\$conf['name']] = new ".$conf['main']['namespace']."\\".$conf['main']['class']."(\$this->lonaDB, \$conf['name'], \$conf['version']);");
 
                                     // Run plugin onEnable event directly, no need for fork
@@ -144,65 +152,86 @@ class PluginManager
         }
     }
 
-
+    /**
+     * Kills all plugin threads.
+     */
     public function killThreads(): void
     {
-        //Loop through all process IDs
+        // Loop through all process IDs
         foreach ($pid as $this->pids) {
-            //Kill the thread
+            // Kill the thread
             posix_kill($pid, SIGKILL);
         }
         $this->lonaDB->Logger->Info("Plugin threads have been killed");
     }
 
+    /**
+     * Retrieves a plugin by name.
+     *
+     * @param string $name The name of the plugin.
+     * @return bool Returns the plugin instance if found, false otherwise.
+     */
     public function getPlugin(string $name): bool
     {
         return $this->plugins[$name] ?? false;
     }
 
+    /**
+     * Loads PHP classes from the specified path.
+     *
+     * @param string $path The path to load classes from.
+     * @param Phar|null $phar The PHAR archive to load classes from, if applicable.
+     */
     private function load_classphp(string $path, Phar $phar = null): void
     {
-        //Check if loading from PHAR
+        // Check if loading from PHAR
         if (str_starts_with($path, "phar")) {
-            //Loop through PHAR
+            // Loop through PHAR
             foreach (new RecursiveIteratorIterator($phar) as $file) {
-                //Load a file if it's a PHP file
+                // Load a file if it's a PHP file
                 if (str_ends_with($file->getPathName(), ".php")) {
                     require_once $file->getPathName();
                 }
             }
         }
 
-        //Remove the last "/" if its last character in the path name
+        // Remove the last "/" if its last character in the path name
         if (str_ends_with($path, "/")) {
             $path = substr($path, 0, -1);
         }
-        //Scan directory
+        // Scan directory
         $items = glob($path."/*");
-        //Loop through the directory
+        // Loop through the directory
         foreach ($items as $item) {
-            //Check if a file ends with PHP
+            // Check if a file ends with PHP
             $isPhp = str_ends_with($item, ".php");
 
             if ($isPhp) {
-                //Load file
+                // Load file
                 require_once $item;
             } else {
-                //If it's a folder, load PHP files inside
+                // If it's a folder, load PHP files inside
                 $this->load_classphp($item."/");
             }
         }
     }
 
+    /**
+     * Runs an event for all plugins.
+     *
+     * @param string $executor The executor of the action.
+     * @param string $event The name of the event.
+     * @param array $arguments The arguments to pass to the event.
+     */
     public function runEvent(string $executor, string $event, array $arguments): void
     {
         if (!is_array($arguments)) {
             $this->lonaDB->logger->Error("Invalid arguments provided for event: ".$event);
             return;
         }
-        //Loop through all plugins
+        // Loop through all plugins
         foreach ($this->plugins as $pluginInstance) {
-            //Run event identified by name
+            // Run event identified by name
             switch ($event) {
                 case "tableCreate":
                     $pluginInstance->onTableCreate($executor, $arguments['name']);
