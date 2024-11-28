@@ -23,14 +23,13 @@ class LonaFunction{
     public function __construct(LonaDB $lonaDB, string $name){
         $this->lonaDB = $lonaDB;
 
-        $this->lonaDB->logger->Load("Loading function '".$name."'");
+        $this->lonaDB->getLogger()->load("Loading function '".$name."'");
 
         // Split encrypted function from IV
         $parts = explode(':', file_get_contents("./data/functions/".$name));
         // Decrypt function
         $temp = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
 
-        // Get function name
         $this->file = substr($name, 0, -5);
         $this->name = $this->file;
 
@@ -47,7 +46,7 @@ class LonaFunction{
         // Add the function to the array
         eval($function);
 
-        $this->lonaDB->logger->Load("Function '" . $this->name . "' has been loaded");
+        $this->lonaDB->getLogger()->load("Function '" . $this->name . "' has been loaded");
     }
 
     /**
@@ -58,8 +57,7 @@ class LonaFunction{
      * @param mixed $client The client to send the response to.
      * @return mixed The result of the function execution.
      */
-    public function execute(LonaDB $lonaDB, array $data, $client) {
-        // Run function
+    public function execute(LonaDB $lonaDB, array $data, mixed $client) {
         return $this->functions[$this->name]->run($lonaDB, $data);
     }
 }

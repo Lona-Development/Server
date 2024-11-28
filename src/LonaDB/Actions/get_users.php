@@ -1,5 +1,6 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -20,12 +21,13 @@ return new class implements ActionInterface {
      * @param  mixed  $client  The client to send the response to.
      * @return bool Returns true if the users are retrieved successfully, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        // Check if a user is allowed to request a user's array
-        if(!$lonaDB->userManager->checkPermission($data['login']['name'], "get_users"))
-            return $this->send($client, ["success" => false, "err" => "missing_permission", "process" => $data['process']]);
-        // Get users' array
-        $users = $lonaDB->userManager->listUsers();
-        return $this->send($client, ["success" => true, "users" => $users, "process" => $data['process']]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        $process = $data['process'];
+        if (!$lonaDB->getUserManager()->checkPermission($data['login']['name'], "get_users")) {
+            return $this->sendError($client, ErrorCode::MISSING_PERMISSION, $process);
+        }
+        $users = $lonaDB->getUserManager()->listUsers();
+        return $this->sendSuccess($client, $data['process'], ["users" => $users]);
     }
 };

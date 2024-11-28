@@ -1,5 +1,6 @@
 <?php
 
+use LonaDB\Enums\Event;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -20,10 +21,11 @@ return new class implements ActionInterface {
      * @param  mixed  $client  The client to send the response to.
      * @return bool Returns true if the function is executed successfully, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        $function = $lonaDB->functionManager->getFunction($data['name']);
-        $response = $function->execute($lonaDB, $data, $client);
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "functionExecute", [ "name" => $data['name'] ]);
-        return $this->send($client, ["success" => true, "result" => $response, "process" => $data["process"]]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        $name = $data['name'];
+        $response = $lonaDB->getFunctionManager()->getFunction($name)->execute($lonaDB, $data, $client);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_EXECUTE, ["name" => $name]);
+        return $this->sendSuccess($client, $data['process'], ["result" => $response]);
     }
 };

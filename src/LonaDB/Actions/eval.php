@@ -1,7 +1,10 @@
 <?php
 
-require 'vendor/autoload.php';
+require '../../vendor/autoload.php';
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Role;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -24,8 +27,8 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client) : bool {
         // Check if the user is root (only root is allowed to use eval)
-        if ($lonaDB->userManager->getRole($data['login']['name']) !== "Superuser") {
-            $this->sendErrorResponse($client, "not_root", $data['process']);
+        if ($lonaDB->getUserManager()->getRole($data['login']['name'])->isNot(Role::SUPERUSER)) {
+            $this->sendErrorResponse($client, ErrorCode::NOT_ROOT, $data['process']);
             return false;
         }
         // Generate an eval script to create a class with the desired function
@@ -51,7 +54,7 @@ return new class implements ActionInterface {
         $this->sendSuccessResponse($client, $answer, $data['process']);
         // Remove the function from the $functions array
         unset($functions[$functionName]);
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "eval", [ "content" => $data['function'] ]);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::EVAL, [ "content" => $data['function'] ]);
         return true;
     }
 
@@ -59,12 +62,12 @@ return new class implements ActionInterface {
      * Sends an error response to the client.
      *
      * @param  mixed  $client  The client to send the response to.
-     * @param  string  $error  The error message.
+     * @param  ErrorCode  $error  The error message.
      * @param  string  $process  The process identifier.
      * @return void
      */
-    private function sendErrorResponse(mixed $client, string $error, string $process): void {
-        $response = json_encode(["success" => false, "err" => $error, "process" => $process]);
+    private function sendErrorResponse(mixed $client, ErrorCode $error, string $process): void {
+        $response = json_encode(["success" => false, "err" => $error->value, "process" => $process]);
         socket_write($client, $response);
         socket_close($client);
     }

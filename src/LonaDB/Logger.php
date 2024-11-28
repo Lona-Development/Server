@@ -2,7 +2,7 @@
 
 namespace LonaDB;
 
-require 'vendor/autoload.php';
+require '../vendor/autoload.php';
 
 class Logger
 {
@@ -31,9 +31,10 @@ class Logger
      */
     private function log(string $message, string $color = ""): void
     {
-        echo($color.$message."\e[0m");
+        $finalMessage = date("Y-m-d h:i:s").$message."\n";
+        echo($color.$finalMessage."\e[0m");
         if ($this->lonaDB->config["logging"]) {
-            fwrite($this->logFile, $message);
+            fwrite($this->logFile, $finalMessage);
         }
     }
 
@@ -50,32 +51,26 @@ class Logger
     /**
      * Logs a startup message if it hasn't been logged already.
      *
-     * @param  string  $msg  The startup message.
+     * @param  string  $message  The startup message.
      */
-    public function start(string $msg): void
+    public function start(string $message): void
     {
-        //Check if the Startup message has already been sent
         if (!$this->start) {
-            //Declare that the Startup message has been sent
             $this->start = true;
-
-            //Send the Startup message
-            $log = date("Y-m-d h:i:s")." [Startup] ".$msg."\n";
-            $this->log($log);
+            $this->log("[Startup] ".$message);
         }
     }
 
     /**
      * Logs an info message to the terminal and caches it.
      *
-     * @param  string  $msg  The info message.
+     * @param  string  $message  The info message.
      */
-    public function infoCache(string $msg): void
+    public function infoCache(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
+        $log = "[INFO] ".$message;
         echo($log);
-
-        $this->infoCache = $this->infoCache.$log;
+        $this->infoCache = $this->infoCache.date("Y-m-d h:i:s").' '.$log;
     }
 
     /**
@@ -91,89 +86,81 @@ class Logger
     /**
      * Logs a warning message.
      *
-     * @param  string  $msg  The warning message.
+     * @param  string  $message  The warning message.
      */
-    public function warning(string $msg): void
+    public function warning(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [WARNING] ".$msg."\n";
-        $this->log($log, "\033[33m");
+        $this->log("[WARNING] ".$message, "\033[33m");
     }
 
     /**
      * Logs an error message.
      *
-     * @param  string  $msg  The error message.
+     * @param  string  $message  The error message.
      */
-    public function error(string $msg): void
+    public function error(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [ERROR] ".$msg."\n";
-        $this->log($log, "\033[31m");
+        $this->log("[ERROR] ".$message, "\033[31m");
     }
 
     /**
      * Logs a create message.
      *
-     * @param  string  $msg  The create message.
+     * @param  string  $message  The create message.
      */
-    public function create(string $msg): void
+    public function create(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [CREATE] ".$msg."\n";
-        $this->log($log, "\033[32m");
+        $this->log("[CREATE] ".$message, "\033[32m");
     }
 
     /**
      * Logs a load message.
      *
-     * @param  string  $msg  The load message.
+     * @param  string  $message  The load message.
      */
-    public function load(string $msg): void
+    public function load(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [LOAD] ".$msg."\n";
-        $this->log($log);
+        $this->log("[LOAD] ".$message);
     }
 
     /**
      * Logs an info message.
      *
-     * @param  string  $msg  The info message.
+     * @param  string  $message  The info message.
      */
-    public function info(string $msg): void
+    public function info(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
-        $this->log($log, "\033[34m");
+        $this->log("[INFO] ".$message, "\033[34m");
     }
 
     /**
      * Logs a table message.
      *
-     * @param  string  $msg  The table message.
+     * @param  string  $message  The table message.
      */
-    public function table(string $msg): void
+    public function table(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [TABLE] ".$msg."\n";
-        $this->log($log);
+        $this->log("[TABLE] ".$message);
     }
 
     /**
      * Logs a user message.
      *
-     * @param  string  $msg  The user message.
+     * @param  string  $message  The user message.
      */
-    public function user(string $msg): void
+    public function user(string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [USER] ".$msg."\n";
-        $this->log($log);
+        $this->log("[USER] ".$message);
     }
 
     /**
      * Logs a plugin message.
      *
      * @param  string  $name  The name of the plugin.
-     * @param  string  $msg  The plugin message.
+     * @param  string  $message  The plugin message.
      */
-    public function plugin(string $name, string $msg): void
+    public function plugin(string $name, string $message): void
     {
-        $log = date("Y-m-d h:i:s")." [Plugin] ".$name.": ".$msg."\n";
-        $this->log($log, "\033[35m");
+        $this->log("[Plugin] ".$name.": ".$message, "\033[35m");
     }
 }

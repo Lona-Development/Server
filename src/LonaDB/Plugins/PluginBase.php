@@ -2,7 +2,7 @@
 
 namespace LonaDB\Plugins;
 
-require 'vendor/autoload.php';
+require '../../vendor/autoload.php';
 
 use LonaDB\LonaDB;
 use LonaDB\Logger;
@@ -46,7 +46,7 @@ class PluginBase
      */
     final public function getLogger(): Logger
     {
-        return $this->lonaDB->logger;
+        return $this->lonaDB->getLogger();
     }
 
     /**
@@ -74,7 +74,7 @@ class PluginBase
      */
     public function onEnable(): void
     {
-        $this->getLogger()->Info("Plugin '".$this->name."' has been loaded");
+        $this->getLogger()->info("Plugin '".$this->name."' has been loaded");
     }
 
     /**

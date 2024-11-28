@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,25 +25,25 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        // Check if parameters exist
         if (!$data['table']['name'] || !$data['variable']['name']) {
-            return $this->send($client, ["success" => false, "err" => "missing_parameters", "process" => $data['process']]);
+            return $this->sendError($client, ErrorCode::MISSING_PARAMETERS, $data['process']);
         }
-        // Check if table exists
-        if (!$lonaDB->tableManager->getTable($data['table']['name'])) {
-            return $this->send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
+        $tableName = $data['table']['name'];
+        $table = $lonaDB->getTableManager()->getTable($tableName);
+
+        if (!$table) {
+            return $this->sendError($client, ErrorCode::TABLE_MISSING, $data['process']);
         }
-        // Check if the user has read permissions on the desired table
-        if (!$lonaDB->tableManager->getTable($data['table']['name'])->checkPermission($data['login']['name'], "read")) {
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+        $username = $data['login']['name'];
+        if (!$table->checkPermission($username, Permission::READ)) {
+            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
         }
-        // Check if a variable exists
-        if (!$lonaDB->tableManager->getTable($data['table']['name'])->CheckVariable($data['variable']['name'], $data['login']['name'])) {
-            return $this->send($client, ["success" => false, "err" => "missing_variable", "process" => $data['process']]);
+        if (!$table->checkVariable($data['variable']['name'], $username)) {
+            return $this->sendError($client, ErrorCode::MISSING_VARIABLE, $data['process']);
         }
-        // Delete variable
-        $lonaDB->tableManager->getTable($data['table']['name'])->Delete($data['variable']['name'], $data['login']['name']);
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "valueRemove", ["table" => $data['table']['name'], "name" => $data['variable']['name']]);
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        $table->delete($data['variable']['name'], $username);
+        $lonaDB->getPluginManager()->runEvent($username, Event::VALUE_REMOVE,
+            ["table" => $tableName, "name" => $data['variable']['name']]);
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,16 +25,15 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        if (!$lonaDB->userManager->checkPermission($data['login']['name'], "create_function")) {
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+        if (!$lonaDB->getUserManager()->checkPermission($data['login']['name'], Permission::CREATE_FUNCTION)) {
+            return $this->sendError($client,  ErrorCode::NO_PERMISSIONS, $data['process']);
         }
 
-        $lonaDB->functionManager->create($data['function']['name'], $data['function']['content']);
+        $lonaDB->getFunctionManager()->create($data['function']['name'], $data['function']['content']);
 
-        // Run the function creation event in the plugin manager
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "functionCreate",
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_CREATE,
             ["name" => $data['function']['name'], "content" => $data['function']['content']]);
 
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

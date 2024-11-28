@@ -1,5 +1,7 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Role;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,19 +24,20 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        // Check if a user is Administrator or Superuser
-        if ($lonaDB->userManager->getRole($data['login']['name']) !== "Superuser" && $lonaDB->userManager->getRole($data['login']['name']) !== "Administrator") {
-            return $this->send($client, ["success" => false, "err" => "not_allowed", "process" => $data['process']]);
+        $userManager = $lonaDB->getUserManager();
+        $role = $userManager->getRole($data['login']['name']);
+        if ($role->isNotIn([Role::ADMIN, Role::SUPERUSER])) {
+            return $this->sendError($client, ErrorCode::NOT_ALLOWED, $data['process']);
         }
-        // Check if a user exists
-        if (!$lonaDB->userManager->checkUser($data['user'])) {
-            return $this->send($client, ["success" => false, "err" => "user_doesnt_exist", "process" => $data['process']]);
+
+        if (!$userManager->checkUser($data['user'])) {
+            return $this->sendError($client, ErrorCode::USER_DOESNT_EXIST, $data['process']);
         }
-        $permissions = $lonaDB->userManager->getPermissions($data['user']);
-        $response = [
-            "success" => true, "list" => ($permissions == [] ? [] : $permissions), "role" => $lonaDB->userManager->getRole($data['user']),
-            "process" => $data['process']
-        ];
-        return $this->send($client, $response);
+        $permissions = $userManager->getPermissions($data['user']);
+
+        return $this->sendSuccess($client, $data['process'], [
+            "list" => ($permissions === [] ? [] : $permissions),
+            "role" => $userManager->getRole($data['user'])->value,
+        ]);
     }
 };
