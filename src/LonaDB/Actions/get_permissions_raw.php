@@ -23,7 +23,7 @@ return new class implements ActionInterface {
         $permissions = $lonaDB->userManager->getPermissions($data['user']);
         //Create a response array
         $response = [
-            "success" => true, "list" => ($permissions === [] ? [] : $permissions), "role" => $lonaDB->userManager->getRole($data['user']),
+            "success" => true, "list" => ($permissions == [] ? [] : $permissions), "role" => $lonaDB->userManager->getRole($data['user']),
             "process" => $data['process']
         ];
         //Send response

@@ -36,7 +36,7 @@ return new class implements ActionInterface {
             return $this->send($client, $value);
         }
         //Check if variable exists
-        if ($value === null) 
+        if ($value == null) 
             $response = [
                 "success" => false,
                 "err" => "variable_undefined",

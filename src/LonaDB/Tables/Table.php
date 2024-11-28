@@ -59,6 +59,12 @@ class Table
         return $this->data;
     }
 
+    //Return an array of all permissions of the table
+    public function getPermissions(): array
+    {
+        return $this->permissions;
+    }
+
     //Return the table owner's name
     public function getOwner(): string
     {
@@ -119,11 +125,11 @@ class Table
     public function checkPermission(string $user, string $permission): bool
     {
         //Check if the user is the table owner
-        if ($user === $this->owner) {
+        if ($user == $this->owner) {
             return true;
         }
         //Check if the user is an Administrator or Superuser
-        if ($this->lonaDB->userManager->getRole($user) === "Administrator" || $this->lonaDB->userManager->getRole($user) === "Superuser") {
+        if ($this->lonaDB->userManager->getRole($user) == "Administrator" || $this->lonaDB->userManager->getRole($user) == "Superuser") {
             return true;
         }
         //Check if the user is a table Administrator
@@ -175,7 +181,7 @@ class Table
 
         //Remove permission and save
         unset($this->permissions[$name][$permission]);
-        if ($this->permissions[$name] === array()) {
+        if ($this->permissions[$name] == array()) {
             unset($this->permissions[$name]);
         }
         $this->save();

@@ -42,7 +42,7 @@ class TableManager
         }
 
         //No table files exist
-        if ($counter === 0) {
+        if ($counter == 0) {
             //Create default table
             $this->createTable("Default", "root");
         }

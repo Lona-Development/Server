@@ -49,7 +49,7 @@ class LonaDB {
             //File_exists gave an error because we run LonaDB as a phar.
             file_put_contents("configuration.lona", file_get_contents("configuration.lona"));
             //If the file didn't exist before, run setup
-            if(file_get_contents("configuration.lona") === "") $this->setup();
+            if(file_get_contents("configuration.lona") == "") $this->setup();
             //If the file did exist before, decrypt it
             else{
                 //Split the encrypted content from the IV
@@ -154,7 +154,7 @@ class LonaDB {
         $logAns = fgets($logHandle);
         fclose($logHandle);
         $log = false;
-        if(trim(strtolower($logAns)) === "y") $log = true;
+        if(trim(strtolower($logAns)) == "y") $log = true;
 
         $this->logger->infoCache("Saving config.");
 

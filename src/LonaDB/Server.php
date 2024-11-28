@@ -49,7 +49,7 @@ class Server {
         //Loop through all action files
         foreach ($actionFiles as $file) {
             //If the file extension is "php"
-            if (pathinfo($file, PATHINFO_EXTENSION) === 'php') {
+            if (pathinfo($file, PATHINFO_EXTENSION) == 'php') {
                 //Set variable actionName to the file name without extension
                 $actionName = pathinfo($file, PATHINFO_FILENAME);
                 //Load an action file to the action array
@@ -68,7 +68,7 @@ class Server {
         socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 1);
 
         //Check if there was an error while initializing the socket
-        if ($this->socket === false) {
+        if ($this->socket == false) {
             $this->lonaDB->logger->error("Failed to create socket: " . socket_strerror(socket_last_error()));
             return;
         }
@@ -96,7 +96,7 @@ class Server {
             //Accept the connections
             $client = socket_accept($this->socket);
             //If you cannot accept connections
-            if ($client === false) {
+            if ($client == false) {
                 $this->lonaDB->logger->error("Failed to accept client connection: " . socket_strerror(socket_last_error()));
                 continue;
             }
@@ -104,7 +104,7 @@ class Server {
             //Read data form clients
             $data = socket_read($client, 1024);
             //If you cannot read data
-            if ($data === false) {
+            if ($data == false) {
                 $this->lonaDB->logger->error("Failed to read data from client: " . socket_strerror(socket_last_error()));
                 continue;
             }
