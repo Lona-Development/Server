@@ -113,10 +113,10 @@ class LonaDB
     {
         $this->logger->infoCache("Invalid or missing config. Starting setup.");
 
-        $databasePort = intval(str_replace("\n", "", $this->readInput("Database port:")));
-        $databaseAddress = $this->readInput("Database address:");
-        $encryptionKey = $this->readInput("Data encryption key:");
-        $rootPassword = $this->readInput("Password for root user:");
+        $databasePort = intval(str_replace("\n", "", $this->readInput("Database port")));
+        $databaseAddress = $this->readInput("Database address");
+        $encryptionKey = $this->readInput("Data encryption key");
+        $rootPassword = $this->readInput("Password for root user");
 
         //Logging to file
         echo "Enable logging to a file? (y/N):\n";
