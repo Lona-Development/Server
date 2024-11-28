@@ -1,5 +1,9 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
+use LonaDB\Enums\Role;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,26 +26,25 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        // Check if the table name is in the parameters
-        if (empty($data['table']['name'])) {
-            return $this->send($client, ["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
+        $tableName = $data['table']['name'];
+        $username = $data['login']['name'];
+        if (empty($tableName)) {
+            return $this->sendError($client, ErrorCode::BAD_TABLE_NAME, $data['process']);
         }
-        // Check if the user is allowed to delete tables
-        if (!$lonaDB->userManager->checkPermission($data['login']['name'], "table_delete")) {
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+        if (!$lonaDB->getUserManager()->checkPermission($username, Permission::TABLE_DELETE)) {
+            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
         }
-        // Check if the table exists
-        if (!$lonaDB->tableManager->getTable($data['table']['name'])) {
-            return $this->send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
+        $tableManager = $lonaDB->getTableManager();
+        if (!$tableManager->getTable($tableName)) {
+            return $this->sendError($client, ErrorCode::TABLE_MISSING, $data['process']);
         }
-        // Check if the user owns the table
-        if ($lonaDB->tableManager->getTable($data['table']['name'])->getOwner() !== $data['login']['name'] && $lonaDB->userManager->GetRole($data['login']['name']) !== "Administrator" && $lonaDB->userManager->GetRole($data['login']['name']) !== "Superuser") {
-            return $this->send($client,
-                ["success" => false, "err" => "not_table_owner", "process" => $data['process']]);
+        $role = $lonaDB->getUserManager()->getRole($username);
+        if ($tableManager->getTable($tableName)->getOwner() !== $username && $role->isNotIn([Role::ADMIN, Role::SUPERUSER])) {
+            return $this->sendError($client, ErrorCode::NOT_TABLE_OWNER, $data['process']);
         }
 
-        $lonaDB->tableManager->deleteTable($data['table']['name'], $data['login']['name']);
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "tableDelete", ["name" => $data['table']['name']]);
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        $tableManager->deleteTable($tableName, $username);
+        $lonaDB->getPluginManager()->runEvent($username, Event::TABLE_DELETE, ["name" => $tableName]);
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

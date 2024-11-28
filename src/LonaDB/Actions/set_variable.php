@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,27 +25,28 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        // Check if a parameter has been set
+        $process = $data['process'];
         if (empty($data['table']['name']) || empty($data['variable']['name']) || empty($data['variable']['value'])) {
-            return $this->send($client, ["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
+            return $this->sendError($client, ErrorCode::BAD_TABLE_NAME, $process);
         }
         $tableName = $data['table']['name'];
-        if (!$lonaDB->tableManager->getTable($tableName)) {
-            return $this->send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
+        if (!$lonaDB->getTableManager()->getTable($tableName)) {
+            return $this->sendError($client, ErrorCode::TABLE_MISSING, $process);
         }
-        $table = $lonaDB->tableManager->getTable($tableName);
-        // Check if user has write permissions on desired table
-        if (!$table->checkPermission($data['login']['name'], "write")) {
-            return $this->send($client,
-                ["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
+        $table = $lonaDB->getTableManager()->getTable($tableName);
+        $username = $data['login']['name'];
+
+        if (!$table->checkPermission($username, Permission::WRITE)) {
+            return $this->sendError($client, ErrorCode::MISSING_PERMISSION, $process);
         }
         $variableName = $data['variable']['name'];
         $variableValue = $data['variable']['value'];
-        $table->set($variableName, $variableValue, $data['login']['name']);
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "valueSet", [
-            "table" => $data['table']['name'], "name" => $data['variable']['name'],
-            "value" => $data['variable']['value']
+        $table->set($variableName, $variableValue, $username);
+        $lonaDB->getPluginManager()->runEvent($username, Event::VALUE_SET, [
+            "table" => $tableName,
+            "name" => $variableName,
+            "value" => $variableValue
         ]);
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        return $this->sendSuccess($client, $process, []);
     }
 };

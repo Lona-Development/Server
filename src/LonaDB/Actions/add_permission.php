@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,17 +25,19 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        if (!$data['permission']['user']) {
-            return $this->send($client, ["success" => false, "err" => "missing_user", "process" => $data['process']]);
+        $permissionUser = $data['permission']['user'];
+        if (!$permissionUser) {
+            return $this->sendError($client, ErrorCode::MISSING_USER, $data['process']);
+        }
+        $userManager = $lonaDB->getUserManager();
+
+        if (!$userManager->checkPermission($data['login']['name'], Permission::PERMISSION_ADD)) {
+            $userManager->addPermission($permissionUser, Permission::findPermission($data['permission']['name']));
         }
 
-        if (!$lonaDB->userManager->checkPermission($data['login']['name'], "permission_add")) {
-            $lonaDB->userManager->addPermission($data['permission']['user'], $data['permission']['name']);
-        }
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_ADD,
+            ["user" => $permissionUser, "name" => $data['permission']['name']]);
 
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "permissionAdd",
-            ["user" => $data['permission']['user'], "name" => $data['permission']['name']]);
-
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

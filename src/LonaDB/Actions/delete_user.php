@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -20,23 +23,30 @@ return new class implements ActionInterface {
      * @param  mixed  $client  The client to send the response to.
      * @return bool Returns true if the user is deleted successfully, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        // Check if a name has been set
-        if(!$data['user']['name'])
-            return $this->send($client, ["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        if (!$data['user']['name']) {
+            return $this->sendError($client,  ErrorCode::MISSING_ARGUMENTS, $data['process']);
+        }
 
-        // Check if a user is allowed to delete users
-        if(!$lonaDB->userManager->checkPermission($data['login']['name'], "user_delete"))
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+        $userManager = $lonaDB->getUserManager();
+        $userName = $data['user']['name'];
+        $loginName = $data['login']['name'];
 
-        // Check if a user exists
-        if(!$lonaDB->userManager->checkUser($data['user']['name']))
-            return $this->send($client, ["success" => false, "err" => "user_doesnt_exist", "process" => $data['process']]);
+        if (!$userManager->checkPermission($loginName, Permission::USER_DELETE)) {
+            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
+        }
 
-        $result = $lonaDB->userManager->deleteUser($data['user']['name']);
+        if (!$userManager->checkUser($userName)) {
+            return $this->sendError($client, ErrorCode::USER_DOESNT_EXIST, $data['process']);
+        }
 
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "userDelete", [ "name" => $data['user']['name'] ]);
+        $result = $userManager->deleteUser($userName);
+        $lonaDB->getPluginManager()->runEvent($loginName, Event::USER_DELETE, ["name" => $userName]);
 
-        return $this->send($client, ["success" => $result, "process" => $data['process']]);
+        if (!$result) {
+            return $this->sendError($client, ErrorCode::USER_DELETE_FAILED, $data['process']);
+        }
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

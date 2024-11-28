@@ -5,6 +5,7 @@ namespace LonaDB;
 require 'vendor/autoload.php';
 
 use Exception;
+use LonaDB\Enums\ErrorCode;
 
 class Server
 {
@@ -55,7 +56,7 @@ class Server
                 // Set variable actionName to the file name without extension
                 $actionName = pathinfo($file, PATHINFO_FILENAME);
                 $this->actions[$actionName] = require(__DIR__."/Actions/".$file);
-                $this->lonaDB->logger->info("Loaded Networking action from file '".$actionName."'");
+                $this->lonaDB->getLogger()->info("Loaded Networking action from file '".$actionName."'");
             }
         }
     }
@@ -75,41 +76,41 @@ class Server
 
         // Check if there was an error while initializing the socket
         if ($this->socket === false) {
-            $this->lonaDB->logger->error("Failed to create socket: ".socket_strerror(socket_last_error()));
+            $this->lonaDB->getLogger()->error("Failed to create socket: ".socket_strerror(socket_last_error()));
             return;
         }
 
         // Try binding the socket to the desired IP and port
         if (!socket_bind($this->socket, $this->address, $this->port)) {
-            $this->lonaDB->logger->error("Failed to bind socket: ".socket_strerror(socket_last_error()));
+            $this->lonaDB->getLogger()->error("Failed to bind socket: ".socket_strerror(socket_last_error()));
             return;
         }
 
-        // Try to listen for clients
+        // Try to listen to clients
         if (!socket_listen($this->socket)) {
-            $this->lonaDB->logger->error("Failed to listen on socket: ".socket_strerror(socket_last_error()));
+            $this->lonaDB->getLogger()->error("Failed to listen on socket: ".socket_strerror(socket_last_error()));
             return;
         }
 
         // Tell the PluginManager to load the plugins
-        $this->lonaDB->logger->info("PluginManager: Starting to load plugins...");
+        $this->lonaDB->getLogger()->info("PluginManager: Starting to load plugins...");
         $this->lonaDB->loadPlugins();
 
-        $this->lonaDB->logger->start("Server running on port ".$this->port);
+        $this->lonaDB->getLogger()->start("Server running on port ".$this->port);
         $this->socketRunning = true;
 
         while (true) {
             // Accept the connections
             $client = socket_accept($this->socket);
             if ($client === false) {
-                $this->lonaDB->logger->error("Failed to accept client connection: ".socket_strerror(socket_last_error()));
+                $this->lonaDB->getLogger()->error("Failed to accept client connection: ".socket_strerror(socket_last_error()));
                 continue;
             }
 
             // Read data from clients
             $data = socket_read($client, 1024);
             if ($data === false) {
-                $this->lonaDB->logger->error("Failed to read data from client: ".socket_strerror(socket_last_error()));
+                $this->lonaDB->getLogger()->error("Failed to read data from client: ".socket_strerror(socket_last_error()));
                 continue;
             }
             $this->handleData($data, $client);
@@ -134,7 +135,7 @@ class Server
      * @param  string  $dataString  The data received from the client.
      * @param  mixed  $client  The client socket.
      */
-    private function handleData(string $dataString, $client): void
+    private function handleData(string $dataString, mixed $client): void
     {
         try {
             $data = json_decode($dataString, true);
@@ -151,7 +152,7 @@ class Server
 
             // Check if data contains a ProcessID
             if (!$data['process']) {
-                $response = json_encode(["success" => false, "err" => "bad_process_id", "process" => $data['process']]);
+                $response = json_encode(["success" => false, "err" => ErrorCode::BAD_PROCESS_ID, "process" => $data['process']]);
                 socket_write($client, $response);
                 return;
             }
@@ -167,18 +168,18 @@ class Server
             $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
 
             // Try logging in with the username and decrypted password
-            $login = $this->lonaDB->userManager->CheckPassword($data['login']['name'], $password);
+            $login = $this->lonaDB->getUserManager()->CheckPassword($data['login']['name'], $password);
 
             // Check if login was successful
             if (!$login) {
-                $response = json_encode(["success" => false, "err" => "login_error", "process" => $data['process']]);
+                $response = json_encode(["success" => false, "err" => ErrorCode::LOGIN_ERROR, "process" => $data['process']]);
                 socket_write($client, $response);
                 return;
             }
 
             // Check if the requested action exists
             if (!$this->actions[$data['action']]) {
-                $response = json_encode(["success" => false, "err" => "action_not_found"]);
+                $response = json_encode(["success" => false, "err" => ErrorCode::ACTION_NOT_FOUND]);
                 socket_write($client, $response);
                 return;
             }
@@ -186,10 +187,10 @@ class Server
             try {
                 $this->actions[$data['action']]->run($this->lonaDB, $data, $client);
             } catch (Exception $e) {
-                $this->lonaDB->logger->error($e->getMessage());
+                $this->lonaDB->getLogger()->error($e->getMessage());
             }
         } catch (Exception $e) {
-            $this->lonaDB->logger->error($e->getMessage());
+            $this->lonaDB->getLogger()->error($e->getMessage());
         }
     }
 }

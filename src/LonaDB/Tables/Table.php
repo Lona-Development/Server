@@ -5,6 +5,8 @@ namespace LonaDB\Tables;
 //Encryption/decryption
 define('AES_256_CBC', 'aes-256-cbc');
 
+use LonaDB\Enums\Permission;
+use LonaDB\Enums\Role;
 use LonaDB\LonaDB;
 
 class Table
@@ -20,41 +22,29 @@ class Table
     /**
      * Constructor for the Table class.
      *
-     * @param LonaDB $lonaDB The LonaDB instance.
-     * @param bool $create Indicates if the table is being created.
-     * @param string $name The name of the table.
-     * @param string $owner The owner of the table.
+     * @param  LonaDB  $lonaDB  The LonaDB instance.
+     * @param  bool  $create  Indicates if the table is being created.
+     * @param  string  $name  The name of the table.
+     * @param  string  $owner  The owner of the table.
      */
     public function __construct(LonaDB $lonaDB, bool $create, string $name, string $owner = "")
     {
         $this->lonaDB = $lonaDB;
-
-        //Check if this instance is used to create the table
         if (!$create) {
-            $this->lonaDB->logger->Load("Trying to load table '".$name."'");
-
-            //Split encrypted file content and IV
+            $this->lonaDB->getLogger()->load("Trying to load table '".$name."'");
             $parts = explode(':', file_get_contents("./data/tables/".$name));
-            //Decrypt table data and load it as a JSON object
             $temp = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
                 base64_decode($parts[1])), true);
-
-            //Load table information
             $this->file = substr($name, 0, -5);
             $this->data = $temp["data"];
             $this->permissions = $temp["permissions"];
             $this->owner = $temp["owner"];
-        } //Instance is used to create the table
-        else {
-            $this->lonaDB->logger->table("Trying to generate table '".$name."'");
-
-            //Load table information and create an empty data and permissions array
+        } else {
+            $this->lonaDB->getLogger()->table("Trying to generate table '".$name."'");
             $this->file = $name;
             $this->data = array();
             $this->permissions = array();
             $this->owner = $owner;
-
-            //Save the empty table
             $this->save();
         }
 
@@ -84,19 +74,17 @@ class Table
     /**
      * Sets the owner of the table.
      *
-     * @param string $name The new owner's name.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The new owner's name.
+     * @param  string  $user  The user executing the action.
      * @return bool Returns true if the owner is set successfully, false otherwise.
      */
     public function setOwner(string $name, string $user): bool
     {
-        $this->lonaDB->logger->table("(".$this->file.") User '".$user."' is trying to change the owner to '".$name."'");
-        //Check if the executing user is either root or the owner of the table
+        $this->lonaDB->getLogger()->table("(".$this->file.") User '".$user."' is trying to change the owner to '".$name."'");
         if ($user !== "root" && $user !== $this->owner) {
             return false;
         }
 
-        //Change the owner and save
         $this->owner = $name;
         $this->save();
         return true;
@@ -105,19 +93,16 @@ class Table
     /**
      * Sets a variable in the table.
      *
-     * @param string $name The name of the variable.
-     * @param mixed $value The value of the variable.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The name of the variable.
+     * @param  mixed  $value  The value of the variable.
+     * @param  string  $user  The user executing the action.
      * @return bool Returns true if the variable is set successfully, false otherwise.
      */
-    public function set(string $name, $value, string $user): bool
+    public function set(string $name, mixed $value, string $user): bool
     {
-        //Check if the executing user has write permissions on this table
-        if (!$this->checkPermission($user, "write")) {
+        if (!$this->checkPermission($user, Permission::WRITE)) {
             return false;
         }
-
-        //Set the variable and save
         $this->data[$name] = $value;
         $this->save();
         return true;
@@ -126,18 +111,15 @@ class Table
     /**
      * Deletes a variable from the table.
      *
-     * @param string $name The name of the variable.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The name of the variable.
+     * @param  string  $user  The user executing the action.
      * @return bool Returns true if the variable is deleted successfully, false otherwise.
      */
     public function delete(string $name, string $user): bool
     {
-        //Check if the executing user has write permissions on this table
-        if (!$this->checkPermission($user, "write")) {
+        if (!$this->checkPermission($user, Permission::WRITE)) {
             return false;
         }
-
-        //Delete the variable and save
         unset($this->data[$name]);
         $this->save();
         return true;
@@ -146,88 +128,94 @@ class Table
     /**
      * Gets a variable from the table.
      *
-     * @param string $name The name of the variable.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The name of the variable.
+     * @param  string  $user  The user executing the action.
      * @return mixed The value of the variable if found, null otherwise.
      */
-    public function get(string $name, string $user)
+    public function get(string $name, string $user): mixed
     {
-        //Check if the executing user has read permissions on this table
-        if (!$this->checkPermission($user, "read")) {
+        if (!$this->checkPermission($user, Permission::READ)) {
             return null;
         }
-
-        //Return variable's value
         return $this->data[$name];
     }
 
     /**
      * Checks if a user has a specific permission on the table.
      *
-     * @param string $user The user to check.
-     * @param string $permission The permission to check.
+     * @param  string  $user  The user to check.
+     * @param  Permission  $permission  The permission to check.
      * @return bool Returns true if the user has the permission, false otherwise.
      */
-    public function checkPermission(string $user, string $permission): bool
+    public function checkPermission(string $user, Permission $permission): bool
     {
-        //Check if the user is the table owner
-        if ($user === $this->owner) {
+        $role = $this->lonaDB->getUserManager()->getRole($user);
+        if (
+            $user === $this->owner &&
+            $role->isIn([Role::ADMIN, Role::SUPERUSER]) &&
+            $this->permissions[$user][Permission::ADMIN->value]
+        ) {
             return true;
         }
-        //Check if the user is an Administrator or Superuser
-        if ($this->lonaDB->userManager->getRole($user) === "Administrator" || $this->lonaDB->userManager->getRole($user) === "Superuser") {
+
+        return (bool) $this->permissions[$user][$permission->value];
+    }
+
+    /**
+     * Checks if a user has a specific permission on the table.
+     *
+     * @param  string  $user  The user to check.
+     * @param  Permission[]  $permissions  The permissions to check.
+     * @return bool Returns true if the user has the permission, false otherwise.
+     */
+    public function hasAnyPermission(string $user, array $permissions): bool
+    {
+        $role = $this->lonaDB->getUserManager()->getRole($user);
+        if (
+            $user === $this->owner &&
+            $role->isIn([Role::ADMIN, Role::SUPERUSER]) &&
+            $this->permissions[$user][Permission::ADMIN->value]
+        ) {
             return true;
         }
-        //Check if the user is a table Administrator
-        if ($this->permissions[$user]["admin"]) {
-            return true;
+
+        foreach ($permissions as $permission) {
+            if ($this->permissions[$user][$permission->value]) {
+                return true;
+            }
         }
-        //Check if the user doesn't have the permission
-        if (!$this->permissions[$user][$permission]) {
-            return false;
-        }
-        //All checks have been run, and the user has the permission
-        return true;
+        return false;
     }
 
     /**
      * Checks if a variable exists in the table.
      *
-     * @param string $name The name of the variable.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The name of the variable.
+     * @param  string  $user  The user executing the action.
      * @return bool Returns true if the variable exists, false otherwise.
      */
     public function checkVariable(string $name, string $user): bool
     {
-        //Check if the executing user has read permissions on this table
-        if (!$this->checkPermission($user, 'read')) {
-            return false;
-        }
-        //Check if a variable exists and return state
-        if (!$this->data[$name]) {
-            return false;
-        }
-        return true;
+        return $this->checkPermission($user, Permission::READ) && $this->data[$name];
     }
 
     /**
      * Adds a permission to a user for the table.
      *
-     * @param string $name The name of the user.
-     * @param string $permission The permission to add.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The name of the user.
+     * @param  string  $permission  The permission to add.
+     * @param  string  $user  The user executing the action.
      * @return bool Returns true if the permission is added successfully, false otherwise.
      */
-    public function addPermission(string $name, string $permission, string $user): bool
+    public function addPermission(string $name, Permission $permission, string $user): bool
     {
-        //Check if the user is table owner/administrator, global administrator or superuser
-        if ($user !== $this->owner && !$this->checkPermission($user,
-                "admin") && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
+        $role = $this->lonaDB->getUserManager()->getRole($user);
+        if ($user !== $this->owner && !$this->checkPermission($user, Permission::ADMIN) &&
+            $role->isNotIn([Role::ADMIN, Role::SUPERUSER])) {
             return false;
         }
 
-        //Add permission and save
-        $this->permissions[$name][$permission] = true;
+        $this->permissions[$name][$permission->value] = true;
         $this->save();
         return true;
     }
@@ -235,21 +223,21 @@ class Table
     /**
      * Removes a permission from a user for the table.
      *
-     * @param string $name The name of the user.
-     * @param string $permission The permission to remove.
-     * @param string $user The user executing the action.
+     * @param  string  $name  The name of the user.
+     * @param  string  $permission  The permission to remove.
+     * @param  string  $user  The user executing the action.
      * @return bool Returns true if the permission is removed successfully, false otherwise.
      */
-    public function removePermission(string $name, string $permission, string $user): bool
+    public function removePermission(string $name, Permission $permission, string $user): bool
     {
-        //Check if the user is table owner/administrator, global administrator or superuser
-        if ($user !== $this->owner && !$this->checkPermission($user,
-                "admin") && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
+        $role = $this->lonaDB->getUserManager()->getRole($user);
+        if ($user !== $this->owner && !$this->checkPermission($user, Permission::ADMIN) && $role->isNotIn([
+                Role::ADMIN, Role::SUPERUSER
+            ])) {
             return false;
         }
 
-        //Remove permission and save
-        unset($this->permissions[$name][$permission]);
+        unset($this->permissions[$name][$permission->value]);
         if ($this->permissions[$name] === array()) {
             unset($this->permissions[$name]);
         }
@@ -262,17 +250,14 @@ class Table
      */
     private function save(): void
     {
-        //Generate IV and array to save
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-        $save = array(
+        $save = [
             "data" => $this->data,
             "permissions" => $this->permissions,
             "owner" => $this->owner
-        );
+        ];
 
-        //Encrypt array using IV
         $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
-        //Save encrypted array and IV
         file_put_contents("./data/tables/".$this->file.".lona", $encrypted.":".base64_encode($iv));
     }
 }

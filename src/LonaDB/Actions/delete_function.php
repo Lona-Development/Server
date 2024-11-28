@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -20,15 +23,17 @@ return new class implements ActionInterface {
      * @param  mixed  $client  The client to send the response to.
      * @return bool Returns true if the function is deleted successfully, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        // Check if a user is allowed to delete functions
-        if(!$lonaDB->userManager->checkPermission($data['login']['name'], "delete_function"))
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        if (!$lonaDB->getUserManager()->checkPermission($data['login']['name'], Permission::DELETE_FUNCTION)) {
+            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
+        }
 
-        $lonaDB->functionManager->delete($data['function']['name']);
+        $lonaDB->getFunctionManager()->delete($data['function']['name']);
 
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "functionDelete", [ "name" => $data['function']['name'] ]);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_DELETE,
+            ["name" => $data['function']['name']]);
 
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };
