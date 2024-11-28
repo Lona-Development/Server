@@ -126,29 +126,10 @@ class LonaDB
     {
         $this->logger->infoCache("Invalid or missing config. Starting setup.");
 
-        //Port
-        echo "Database port:\n";
-        $portHandle = fopen("php://stdin", "r");
-        $port = intval(str_replace("\n", "", fgets($portHandle)));
-        fclose($portHandle);
-
-        //IP
-        echo "Database address:\n";
-        $addrHandle = fopen("php://stdin", "r");
-        $addr = fgets($addrHandle);
-        fclose($addrHandle);
-
-        //EncryptionKey for all data
-        echo "Data encryption key:\n";
-        $keyHandle = fopen("php://stdin", "r");
-        $key = fgets($keyHandle);
-        fclose($keyHandle);
-
-        //Root password
-        echo "Password for root user:\n";
-        $rootHandle = fopen("php://stdin", "r");
-        $root = fgets($rootHandle);
-        fclose($rootHandle);
+        $databasePort = intval(str_replace("\n", "", $this->readInput("Database port:")));
+        $databaseAddress = $this->readInput("Database address:");
+        $encryptionKey = $this->readInput("Data encryption key:");
+        $rootPassword = $this->readInput("Password for root user:");
 
         //Logging to file
         echo "Enable logging to a file? (y/N):\n";
@@ -164,19 +145,33 @@ class LonaDB
 
         //Create IV
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-        //Put input into an array
         $save = array(
-            "port" => $port,
-            "address" => str_replace("\n", "", $addr),
+            "port" => $databasePort,
+            "address" => str_replace("\n", "", $databaseAddress),
             "logging" => $log,
-            "encryptionKey" => str_replace("\n", "", $key),
-            "root" => str_replace("\n", "", $root)
+            "encryptionKey" => str_replace("\n", "", $encryptionKey),
+            "root" => str_replace("\n", "", $rootPassword)
         );
 
         //Encrypt config
         $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->encryptionKey, 0, $iv);
         //Save to configuration.lona
         file_put_contents("./configuration.lona", $encrypted.":".base64_encode($iv));
+    }
+
+    /**
+     * Reads input from the standard input.
+     *
+     * @param string $title The prompt message to display.
+     * @return false|string The input read from the standard input, or false on failure.
+     */
+    public function readInput(string $title): false|string
+    {
+        echo "$title:\n";
+        $inputHandle = fopen("php://stdin", "r");
+        $input = fgets($inputHandle);
+        fclose($inputHandle);
+        return $input;
     }
 
     /**

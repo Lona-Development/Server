@@ -4,3 +4,6 @@ run
 build-phar
 .idea
 src/composer.phar
+log.txt
+configuration.lona
+/data/

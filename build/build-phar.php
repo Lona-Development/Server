@@ -41,7 +41,11 @@ if(trim(strtolower($line)) === 'no' || trim(strtolower($line)) === "n"){
 $start = time();
 
 builderLog("[COMPOSER] Running 'composer install'");
-exec("cd src ; printf '\n' | ./composer.phar install");
+if (file_exists("src/composer.phar")) {
+    exec("cd src ; printf '\n' | php composer.phar install");
+} else {
+    exec("cd src ; printf '\n' | composer install");
+}
 
 if(file_exists($path."/".$filename."-".$version.".phar")){
     unlink($path."/".$filename."-".$version.".phar");
