@@ -62,9 +62,9 @@ class PluginManager
 
                 // Loop through all files in the PHAR archive
                 foreach (new RecursiveIteratorIterator($phar) as $file) {
-                    // Check for plugin.json
-                    if ($file->getFileName() === "plugin.json") {
-                        // Get configuration from plugin.json
+                    //Check for plugin.json
+                    if ($file->getFileName() == "plugin.json") {
+                        //Get configuration from plugin.json
                         $conf = json_decode(file_get_contents($file->getPathName()), true);
                         // Generate path variable for the file
                         eval("\$path = substr(\$file->getPathName(), 0, -".strlen($file->getFileName()).");");
