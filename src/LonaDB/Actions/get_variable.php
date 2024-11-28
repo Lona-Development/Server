@@ -60,7 +60,7 @@ return new class implements ActionInterface {
                 "err" => "variable_undefined",
                 "process" => $data['process']
             ];
-        } else {
+        else {
             $response['variable']['value'] = $value;
             $response['success'] = true;
         }
