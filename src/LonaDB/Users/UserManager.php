@@ -30,7 +30,7 @@ class UserManager
         //Create an empty Users.lona file if it doesn't exist
         file_put_contents("data/Users.lona", file_get_contents("data/Users.lona"));
         //Check if the Users.lona file didn't exist before
-        if (file_get_contents("data/Users.lona") === "") {
+        if (file_get_contents("data/Users.lona") == "") {
             //Create an IV for encryption
             $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
             //Create an empty Array
@@ -60,7 +60,7 @@ class UserManager
     public function checkPassword(string $name = "", string $password = ""): bool
     {
         //If the username is root, check for the root password
-        if ($name === "root" && $password === $this->lonaDB->config["root"]) {
+        if ($name == "root" && $password == $this->lonaDB->config["root"]) {
             return true;
         }
         //Check if the user exists
@@ -68,7 +68,7 @@ class UserManager
             return false;
         }
         //Check if the password is correct
-        if ($this->users[$name]["password"] !== $password) {
+        if ($this->users[$name]["password"] != $password) {
             return false;
         }
         return true;
@@ -82,7 +82,8 @@ class UserManager
      */
     public function checkUser(string $name): bool
     {
-        if ($name === "root") {
+        //Check if the username is root
+        if ($name == "root") {
             return true;
         }
         if (!$this->users[$name]) {
@@ -117,7 +118,7 @@ class UserManager
     public function createUser(string $name, string $password): bool
     {
         //If username is root, abort
-        if ($name === "root") {
+        if ($name == "root") {
             return false;
         }
         $this->lonaDB->logger->user("Trying to create user '".$name."'");
@@ -148,7 +149,7 @@ class UserManager
     public function deleteUser(string $name): bool
     {
         //If username is root, abort
-        if ($name === "root") {
+        if ($name == "root") {
             return false;
         }
         $this->lonaDB->logger->user("Trying to delete user '".$name."'");
@@ -173,10 +174,10 @@ class UserManager
     public function setRole(string $name, string $role): bool
     {
         //If the username is root or the desired role is Superuser, abort
-        if ($name === "root") {
+        if ($name == "root") {
             return false;
         }
-        if ($role === "Superuser") {
+        if ($role == "Superuser") {
             return false;
         }
         //Check if a user exists
@@ -197,7 +198,7 @@ class UserManager
     public function getRole(string $name): false|string
     {
         //Root is a superuser
-        if ($name === "root") {
+        if ($name == "root") {
             return "Superuser";
         }
         //Check if a user exists
@@ -205,7 +206,7 @@ class UserManager
             return false;
         }
         //Deny normal users from being a Superuser -> Only root should be a Superuser
-        if ($this->users[$name]['role'] === "Superuser") {
+        if ($this->users[$name]['role'] == "Superuser") {
             $this->users[$name]['role'] = "User";
         }
         return $this->users[$name]['role'];
@@ -225,7 +226,7 @@ class UserManager
             return false;
         }
         //If the user is an Administrator or Superuser, they are allowed to do anything
-        if ($this->getRole($name) === "Administrator" || $this->getRole($name) === "Superuser") {
+        if ($this->getRole($name) == "Administrator" || $this->getRole($name) == "Superuser") {
             return true;
         }
 
@@ -244,7 +245,7 @@ class UserManager
     public function getPermissions(string $name): array
     {
         //If the username is root, return an empty array -> Root is allowed to do anything
-        if ($name === "root") {
+        if ($name == "root") {
             return [];
         }
         //Return the desire user's permissions as an array
@@ -261,7 +262,7 @@ class UserManager
     public function addPermission(string $name, string $permission): bool
     {
         //Check if the username is root -> You cannot add permissions to root
-        if ($name === "root") {
+        if ($name == "root") {
             return false;
         }
         //Check if a user exists
@@ -285,7 +286,7 @@ class UserManager
     public function removePermission(string $name, string $permission): bool
     {
         //Check if the username is root -> You cannot remove permissions from the root
-        if ($name === "root") {
+        if ($name == "root") {
             return false;
         }
         //Check if a user exists

@@ -51,8 +51,9 @@ class Server
         $actionFiles = scandir(__DIR__."/Actions/");
 
         foreach ($actionFiles as $file) {
-            if (pathinfo($file, PATHINFO_EXTENSION) === 'php') {
-                // Set variable actionName to the file name without extension
+            //If the file extension is "php"
+            if (pathinfo($file, PATHINFO_EXTENSION) == 'php') {
+                //Set variable actionName to the file name without extension
                 $actionName = pathinfo($file, PATHINFO_FILENAME);
                 $this->actions[$actionName] = require(__DIR__."/Actions/".$file);
                 $this->lonaDB->logger->info("Loaded Networking action from file '".$actionName."'");
@@ -73,9 +74,9 @@ class Server
         $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 1);
 
-        // Check if there was an error while initializing the socket
-        if ($this->socket === false) {
-            $this->lonaDB->logger->error("Failed to create socket: ".socket_strerror(socket_last_error()));
+        //Check if there was an error while initializing the socket
+        if ($this->socket == false) {
+            $this->lonaDB->logger->error("Failed to create socket: " . socket_strerror(socket_last_error()));
             return;
         }
 
@@ -101,15 +102,17 @@ class Server
         while (true) {
             // Accept the connections
             $client = socket_accept($this->socket);
-            if ($client === false) {
-                $this->lonaDB->logger->error("Failed to accept client connection: ".socket_strerror(socket_last_error()));
+            //If you cannot accept connections
+            if ($client == false) {
+                $this->lonaDB->logger->error("Failed to accept client connection: " . socket_strerror(socket_last_error()));
                 continue;
             }
 
             // Read data from clients
             $data = socket_read($client, 1024);
-            if ($data === false) {
-                $this->lonaDB->logger->error("Failed to read data from client: ".socket_strerror(socket_last_error()));
+            //If you cannot read data
+            if ($data == false) {
+                $this->lonaDB->logger->error("Failed to read data from client: " . socket_strerror(socket_last_error()));
                 continue;
             }
             $this->handleData($data, $client);

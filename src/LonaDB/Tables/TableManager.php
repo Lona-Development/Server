@@ -45,7 +45,9 @@ class TableManager
             }
         }
 
-        if ($counter === 0) {
+        //No table files exist
+        if ($counter == 0) {
+            //Create default table
             $this->createTable("Default", "root");
         }
     }

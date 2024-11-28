@@ -53,8 +53,8 @@ return new class implements ActionInterface {
             $value['process'] = $data['process'];
             return $this->send($client, $value);
         }
-        // Check if a variable exists
-        if ($value === null) {
+        //Check if variable exists
+        if ($value == null) 
             $response = [
                 "success" => false,
                 "err" => "variable_undefined",

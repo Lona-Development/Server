@@ -32,8 +32,9 @@ return new class implements ActionInterface {
         }
         // Get a table data array
         $tableData = $lonaDB->tableManager->getTable($data['table'])->getData();
+
         // Create a response array
-        $response = ["success" => true, "data" => ($tableData === [] ? [] : $tableData), "process" => $data['process']];
-        return $this->send($client, $response);
+        $response = ["success" => true, "data" => ($tableData == [] ? [] : $tableData), "process" => $data['process']];
+        return $this->Send($client, $response);
     }
 };
