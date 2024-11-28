@@ -12,17 +12,20 @@ use LonaDB\LonaDB;
 
 class FunctionManager
 {
-    //Create all variables
     private LonaDB $lonaDB;
     private array $functions;
 
+    /**
+     * Constructor for the FunctionManager class.
+     *
+     * @param LonaDB $lonaDB The LonaDB instance.
+     */
     public function __construct(LonaDB $lonaDB)
     {
         $this->lonaDB = $lonaDB;
-        //Initialize a function array
         $this->functions = array();
 
-        //Check if the directory "data /functions/" exists, create if it doesn't
+        //Check if the directory "data/functions/" exists, create if it doesn't
         if (!is_dir("data/")) {
             mkdir("data/");
         }
@@ -41,11 +44,24 @@ class FunctionManager
         }
     }
 
-    public function getFunction(string $name)
+    /**
+     * Retrieves a function by name.
+     *
+     * @param string $name The name of the function.
+     * @return mixed The function instance if found, false otherwise.
+     */
+    public function getFunction(string $name): mixed
     {
         return $this->functions[$name] ?? false;
     }
 
+    /**
+     * Creates a new function.
+     *
+     * @param string $name The name of the function.
+     * @param string $content The content of the function.
+     * @return bool Returns true if the function is created successfully, false otherwise.
+     */
     public function create(string $name, string $content): bool
     {
         //Check if a function with that name exists
@@ -64,6 +80,12 @@ class FunctionManager
         return true;
     }
 
+    /**
+     * Deletes a function by name.
+     *
+     * @param string $name The name of the function.
+     * @return bool Returns true if the function is deleted successfully, false otherwise.
+     */
     public function delete(string $name): bool
     {
         //Check if function exists

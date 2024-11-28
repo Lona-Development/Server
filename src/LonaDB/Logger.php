@@ -2,99 +2,178 @@
 
 namespace LonaDB;
 
-//Load autoload from composer
 require 'vendor/autoload.php';
 
-//Load the Main file
-use LonaDB\LonaDB;
+class Logger
+{
 
-class Logger{
-    //Create all variables
     private $logFile;
     private string $infoCache = "";
     private bool $start = false;
 
     private LonaDB $lonaDB;
 
-    public function __construct(LonaDB $lonaDB){
+    /**
+     * Constructor for the Logger class.
+     *
+     * @param  LonaDB  $lonaDB  The LonaDB instance.
+     */
+    public function __construct(LonaDB $lonaDB)
+    {
         $this->lonaDB = $lonaDB;
     }
 
-    private function log(string $message, string $color = "") : void {
+    /**
+     * Logs a message with an optional color.
+     *
+     * @param  string  $message  The message to log.
+     * @param  string  $color  The color code for the message (optional).
+     */
+    private function log(string $message, string $color = ""): void
+    {
         echo($color.$message."\e[0m");
-        //Write logs to file if enabled
-        if($this->lonaDB->config["logging"]) fwrite($this->logFile, $message);
+        if ($this->lonaDB->config["logging"]) {
+            fwrite($this->logFile, $message);
+        }
     }
 
-    public function loadLogger() : void {
-        //Create a file instance if logging to file is enabled
-        if($this->lonaDB->config["logging"]) $this->logFile = fopen('log.txt','a');
+    /**
+     * Initializes the logger and creates a log file if logging is enabled.
+     */
+    public function loadLogger(): void
+    {
+        if ($this->lonaDB->config["logging"]) {
+            $this->logFile = fopen('log.txt', 'a');
+        }
     }
 
-    public function start($msg) : void {
+    /**
+     * Logs a startup message if it hasn't been logged already.
+     *
+     * @param  string  $msg  The startup message.
+     */
+    public function start(string $msg): void
+    {
         //Check if the Startup message has already been sent
-        if(!$this->start){
+        if (!$this->start) {
             //Declare that the Startup message has been sent
             $this->start = true;
-            
+
             //Send the Startup message
             $log = date("Y-m-d h:i:s")." [Startup] ".$msg."\n";
             $this->log($log);
         }
     }
 
-    public function infoCache($msg) : void {
-        //Log InfoCache into the terminal
+    /**
+     * Logs an info message to the terminal and caches it.
+     *
+     * @param  string  $msg  The info message.
+     */
+    public function infoCache(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
         echo($log);
 
-        //Add a message to the InfoCache variable
-        $this->infoCache = $this->infoCache . $log;
+        $this->infoCache = $this->infoCache.$log;
     }
 
-    public function dropCache() : void {
-        //Drop all of InfoCache's content into the log file if enabled
-        if($this->lonaDB->config["logging"]) fwrite($this->logFile, $this->infoCache);
+    /**
+     * Writes the cached info messages to the log file if logging is enabled.
+     */
+    public function dropCache(): void
+    {
+        if ($this->lonaDB->config["logging"]) {
+            fwrite($this->logFile, $this->infoCache);
+        }
     }
 
-    //Logger functions
-    public function warning($msg) : void {
+    /**
+     * Logs a warning message.
+     *
+     * @param  string  $msg  The warning message.
+     */
+    public function warning(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [WARNING] ".$msg."\n";
         $this->log($log, "\033[33m");
     }
 
-    public function error($msg) : void {
+    /**
+     * Logs an error message.
+     *
+     * @param  string  $msg  The error message.
+     */
+    public function error(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [ERROR] ".$msg."\n";
         $this->log($log, "\033[31m");
     }
 
-    public function create($msg) : void {
+    /**
+     * Logs a create message.
+     *
+     * @param  string  $msg  The create message.
+     */
+    public function create(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [CREATE] ".$msg."\n";
         $this->log($log, "\033[32m");
     }
 
-    public function load($msg) : void {
+    /**
+     * Logs a load message.
+     *
+     * @param  string  $msg  The load message.
+     */
+    public function load(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [LOAD] ".$msg."\n";
         $this->log($log);
     }
 
-    public function info($msg) : void {
+    /**
+     * Logs an info message.
+     *
+     * @param  string  $msg  The info message.
+     */
+    public function info(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [INFO] ".$msg."\n";
         $this->log($log, "\033[34m");
     }
 
-    public function table($msg) : void {
+    /**
+     * Logs a table message.
+     *
+     * @param  string  $msg  The table message.
+     */
+    public function table(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [TABLE] ".$msg."\n";
         $this->log($log);
     }
 
-    public function user($msg) : void {
+    /**
+     * Logs a user message.
+     *
+     * @param  string  $msg  The user message.
+     */
+    public function user(string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [USER] ".$msg."\n";
         $this->log($log);
     }
 
-    public function plugin($name, $msg) : void {
+    /**
+     * Logs a plugin message.
+     *
+     * @param  string  $name  The name of the plugin.
+     * @param  string  $msg  The plugin message.
+     */
+    public function plugin(string $name, string $msg): void
+    {
         $log = date("Y-m-d h:i:s")." [Plugin] ".$name.": ".$msg."\n";
-        $this->log($log,"\033[35m");
+        $this->log($log, "\033[35m");
     }
 }

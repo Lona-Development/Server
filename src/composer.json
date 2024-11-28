@@ -12,5 +12,9 @@
         {
             "name": "Lona Devs"
         }
-    ]
+    ],
+  "require": {
+    "ext-sockets": "*",
+    "ext-openssl": "*"
+  }
 }
