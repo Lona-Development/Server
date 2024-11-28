@@ -49,6 +49,7 @@ return new class implements ActionInterface {
         if (is_array($value) && isset($value['err'])) {
             return $this->sendError($client, ErrorCode::find($value['err']), $process);
         }
+      
         if ($value === null) {
             return $this->sendError($client, ErrorCode::VARIABLE_UNDEFINED, $process);
         } else {
