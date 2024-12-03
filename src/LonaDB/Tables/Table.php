@@ -151,8 +151,8 @@ class Table
     {
         $role = $this->lonaDB->getUserManager()->getRole($user);
         if (
-            $user === $this->owner &&
-            $role->isIn([Role::ADMIN, Role::SUPERUSER]) &&
+            $user == $this->owner ||
+            $role->isIn([Role::ADMIN, Role::SUPERUSER]) ||
             $this->permissions[$user][Permission::ADMIN->value]
         ) {
             return true;
@@ -172,8 +172,8 @@ class Table
     {
         $role = $this->lonaDB->getUserManager()->getRole($user);
         if (
-            $user === $this->owner &&
-            $role->isIn([Role::ADMIN, Role::SUPERUSER]) &&
+            $user == $this->owner ||
+            $role->isIn([Role::ADMIN, Role::SUPERUSER]) ||
             $this->permissions[$user][Permission::ADMIN->value]
         ) {
             return true;
@@ -197,6 +197,16 @@ class Table
     public function checkVariable(string $name, string $user): bool
     {
         return $this->checkPermission($user, Permission::READ) && $this->data[$name];
+    }
+
+    /**
+     * Returns the table permissions.
+     *
+     * @return array The table permissions.
+     */
+    public function getPermissions(): array
+    {
+        return $this->permissions;
     }
 
     /**

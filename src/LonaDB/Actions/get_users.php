@@ -3,6 +3,7 @@
 use LonaDB\Enums\ErrorCode;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
+use LonaDB\Enums\Permission;
 use LonaDB\Traits\ActionTrait;
 
 /**
@@ -24,7 +25,7 @@ return new class implements ActionInterface {
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
         $process = $data['process'];
-        if (!$lonaDB->getUserManager()->checkPermission($data['login']['name'], "get_users")) {
+        if (!$lonaDB->getUserManager()->checkPermission($data['login']['name'], Permission::findPermission("get_users"))) {
             return $this->sendError($client, ErrorCode::MISSING_PERMISSION, $process);
         }
         $users = $lonaDB->getUserManager()->listUsers();

@@ -219,21 +219,22 @@ class PluginManager
             $this->lonaDB->getLogger()->error("Invalid arguments provided for event: ".$event);
             return;
         }
+
         foreach ($this->plugins as $pluginInstance) {
             $name = $arguments['name'];
             match ($event->value) {
-                "tableCreate" => $pluginInstance->onTableCreate($executor, $name),
-                "tableDelete" => $pluginInstance->onTableDelete($executor, $name),
-                "valueSet" => $pluginInstance->onValueSet($executor, $arguments['table'], $name, $arguments['value']),
-                "valueRemove" => $pluginInstance->onValueRemove($executor, $arguments['table'], $name),
-                "functionCreate" => $pluginInstance->onFunctionCreate($executor, $name, $arguments['content']),
-                "functionDelete" => $pluginInstance->onFunctionDelete($executor, $name),
-                "functionExecute" => $pluginInstance->onFunctionExecute($executor, $name),
-                "userCreate" => $pluginInstance->onUserCreate($executor, $name),
-                "userDelete" => $pluginInstance->onUserDelete($executor, $name),
+                "table_create" => $pluginInstance->onTableCreate($executor, $name),
+                "table_delete" => $pluginInstance->onTableDelete($executor, $name),
+                "value_set" => $pluginInstance->onValueSet($executor, $arguments['table'], $name, $arguments['value']),
+                "value_remove" => $pluginInstance->onValueRemove($executor, $arguments['table'], $name),
+                "function_create" => $pluginInstance->onFunctionCreate($executor, $name, $arguments['content']),
+                "function_delete" => $pluginInstance->onFunctionDelete($executor, $name),
+                "function_execute" => $pluginInstance->onFunctionExecute($executor, $name),
+                "user_create" => $pluginInstance->onUserCreate($executor, $name),
+                "user_delete" => $pluginInstance->onUserDelete($executor, $name),
                 "eval" => $pluginInstance->onEval($executor, $arguments['content']),
-                "permissionAdd" => $pluginInstance->onPermissionAdd($executor, $arguments['user'], $name),
-                "permissionRemove" => $pluginInstance->onPermissionRemove($executor, $arguments['user'], $name),
+                "permission_add" => $pluginInstance->onPermissionAdd($executor, $arguments['user'], $name),
+                "permission_remove" => $pluginInstance->onPermissionRemove($executor, $arguments['user'], $name),
             };
         }
     }

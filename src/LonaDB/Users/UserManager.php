@@ -191,7 +191,7 @@ class UserManager
         if (!$this->checkUser($name)) {
             return null;
         }
-        if ($this->users[$name]['role'] === Role::SUPERUSER->value) {
+        if ($this->users[$name]['role'] == Role::SUPERUSER->value) {
             $this->users[$name]['role'] = Role::USER->value;
         }
         return Role::find($this->users[$name]['role']);
@@ -207,8 +207,8 @@ class UserManager
     public function checkPermission(string $name, Permission $permission): bool
     {
         return $this->checkUser($name) &&
-            $this->getRole($name)->isIn([Role::ADMIN, Role::SUPERUSER]) ||
-            $this->users[$name]['permissions'][$permission->value];
+            (in_array($this->getRole($name), [Role::ADMIN, Role::SUPERUSER]) ||
+            $this->users[$name]['permissions'][$permission->value]);
     }
 
     /**

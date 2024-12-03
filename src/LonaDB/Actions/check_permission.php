@@ -35,6 +35,7 @@ return new class implements ActionInterface {
             return $this->sendError($client,  ErrorCode::NO_PERMISSIONS, $data['process']);
         }
 
+        if(!Permission::findPermission($permArray['name'])) return $this->sendSuccess($client, $data['process'], ["result" => false]);
         $permission = $userManager->checkPermission($permArray['user'], Permission::findPermission($permArray['name']));
 
         return $this->sendSuccess($client, $data['process'], ["result" => $permission]);

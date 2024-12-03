@@ -33,6 +33,8 @@ return new class implements ActionInterface {
         }
         $permissionName = $data['permission']['name'];
         $permissionUser = $data['permission']['user'];
+        
+        if(!Permission::findPermission($permissionName)) return $this->sendSuccess($client, $data['process'], []);
         $lonaDB->getUserManager()->removePermission($permissionUser, Permission::findPermission($permissionName));
         $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_REMOVE,
             [

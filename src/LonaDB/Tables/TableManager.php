@@ -38,6 +38,7 @@ class TableManager
             if (str_ends_with($fileInfo->getFilename(), ".lona")) {
                 $this->tables[substr($fileInfo->getFilename(), 0, -5)] = new Table($this->lonaDB, false,
                     $fileInfo->getFilename());
+                $this->lonaDB->getLogger()->load("Table loaded: " . substr($fileInfo->getFilename(), 0, -5));
                 $counter = $counter + 1;
             }
         }
@@ -68,10 +69,12 @@ class TableManager
      */
     public function listTables(string $user = ""): array
     {
+        $count = 0;
         /* @var Table $table */
         foreach ($this->tables as $table) {
-            if ($user === "" || $table->hasAnyPermission($user, [Permission::WRITE, Permission::READ])) {
-                $tables[] = $table->name;
+            if ($user == "" || $table->hasAnyPermission($user, [Permission::WRITE, Permission::READ])) {
+                $tables[$count] = $table->name;
+                $count++;
             }
         }
         return $tables ?? [];

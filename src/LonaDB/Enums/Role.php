@@ -20,7 +20,7 @@ enum Role: string
 
     public function isIn(array $roles): bool
     {
-        return in_array($this->value, $roles);
+        return in_array($this, $roles);
     }
 
 
@@ -31,6 +31,6 @@ enum Role: string
 
     public function isNot(Role $role): bool
     {
-        return $this->value !== $role->value;
+        return $this->value != $role->value;
     }
 }

@@ -39,7 +39,6 @@ return new class implements ActionInterface {
 
         // Decrypt the password
         $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-        $password = LonaDB::decrypt($ciphertext, $iv, $key, OPENSSL_RAW_DATA);
 
         if (!$password) {
             return $this->sendError($client, ErrorCode::DECRYPTION_FAILED, $processId);
