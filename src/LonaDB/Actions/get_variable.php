@@ -1,5 +1,7 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,48 +24,37 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        // Check if parameters have been set
+        $process = $data['process'];
         if (!$data['table']['name'] || !$data['variable']['name']) {
-            return $this->send($client,
-                ["success" => false, "err" => "missing_parameters", "process" => $data['process']]);
+            return $this->sendError($client, ErrorCode::MISSING_PARAMETERS, $process);
         }
-        // Check if table exists
-        if (!$lonaDB->tableManager->getTable($data['table']['name'])) {
-            return $this->send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
+
+        $table = $lonaDB->getTableManager()->getTable($data['table']['name']);
+
+        if (!$table) {
+            return $this->sendError($client, ErrorCode::TABLE_MISSING, $process);
         }
-        // Check if a user is allowed to read in the desired table
-        if (!$lonaDB->tableManager->getTable($data['table']['name'])->checkPermission($data['login']['name'], "read")) {
-            return $this->send($client,
-                ["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
+        if (!$table->checkPermission($data['login']['name'], Permission::READ)) {
+            return $this->sendError($client, ErrorCode::MISSING_PERMISSION, $process);
         }
-        // Get variable value
-        $value = $lonaDB->tableManager->getTable($data['table']['name'])->get($data['variable']['name'],
-            $data['login']['name']);
-        // Create a response array
+
+        $value = $table->get($data['variable']['name'], $data['login']['name']);
+
         $response = [
             "variable" => [
                 "name" => $data['variable']['name'],
                 "value" => null,
             ],
-            "success" => false,
-            "process" => $data['process']
         ];
-        // Check if there has been an error
         if (is_array($value) && isset($value['err'])) {
-            $value['process'] = $data['process'];
-            return $this->send($client, $value);
+            return $this->sendError($client, ErrorCode::find($value['err']), $process);
         }
-        //Check if variable exists
-        if ($value == null) 
-            $response = [
-                "success" => false,
-                "err" => "variable_undefined",
-                "process" => $data['process']
-            ];
-        else {
+      
+        if ($value === null) {
+            return $this->sendError($client, ErrorCode::VARIABLE_UNDEFINED, $process);
+        } else {
             $response['variable']['value'] = $value;
-            $response['success'] = true;
         }
-        return $this->send($client, $response);
+        return $this->sendSuccess($client, $process, $response);
     }
 };

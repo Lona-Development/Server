@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -13,34 +16,38 @@ return new class implements ActionInterface {
     use ActionTrait;
 
     /**
-     * Runs the action to create a table in LonaDB.
+     * Executes the action to create a table in LonaDB.
      *
      * @param  LonaDB  $lonaDB  The LonaDB instance.
-     * @param  array  $data  The data required to create the table, including login and table details.
-     * @param  mixed  $client  The client to send the response to.
-     * @return bool Returns true if the table is created successfully, false otherwise.
+     * @param  array   $data    The data required to create the table, including login and table details.
+     * @param  mixed   $client  The client to send the response to.
+     * @return bool             True if the table is created successfully, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        // Check if the user is allowed to create tables
-        if (!$lonaDB->userManager->checkPermission($data['login']['name'], "table_create"))
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        $loginName = $data['login']['name'];
+        $processId = $data['process'] ?? null;
+        $tableName = $data['table']['name'] ?? null;
 
-        // Check if the table name has been set
-        if (empty($data['table']['name']))
-            return $this->send($client, ["success" => false, "err" => "bad_table_name", "process" => $data['process']]);
+        if (!$lonaDB->getUserManager()->checkPermission($loginName, Permission::TABLE_CREATE)) {
+            return $this->sendError($client,  ErrorCode::NO_PERMISSIONS, $processId);
+        }
 
-        // Check if the user is trying to create a system table and if they are root
-        if(str_starts_with($data['table']['name'], "system.") && $data['login']['name'] !== "root")
-            return $this->send($client, ["success" => false, "err" => "not_root", "process" => $data['process']]);
+        if (empty($tableName)) {
+            return $this->sendError($client, ErrorCode::BAD_TABLE_NAME, $processId);
+        }
 
-        // Check if the table already exists
-        $table = $lonaDB->tableManager->createTable($data['table']['name'], $data['login']['name']);
-        if(!$table)
-            return $this->send($client, ["success" => false, "err" => "table_exists", "process" => $data['process']]);
+        if (str_starts_with($tableName, 'system.') && $loginName !== 'root') {
+            return $this->sendError($client, ErrorCode::NOT_ROOT, $processId);
+        }
 
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "tableCreate", [ "name" => $data['table']['name'] ]);
+        $table = $lonaDB->getTableManager()->createTable($tableName, $loginName);
+        if (!$table) {
+            return $this->sendError($client,  ErrorCode::TABLE_EXISTS, $processId);
+        }
 
-        // Send a response indicating the table was created successfully
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+        $lonaDB->getPluginManager()->runEvent($loginName, Event::TABLE_CREATE, ['name' => $tableName]);
+
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

@@ -1,5 +1,7 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -23,28 +25,20 @@ return new class implements ActionInterface {
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
         if (!$data['checkPass']['name'] || !$data['checkPass']['pass']) {
-            return $this->send($client,
-                ["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
+            return $this->sendError($client, ErrorCode::MISSING_ARGUMENTS, $data['process']);
         }
-
-        // Hash the process ID
         $key = hash('sha256', $data['process'], true);
-
-        // Split encrypted password from IV
         $parts = explode(':', $data['checkPass']['pass']);
         $iv = hex2bin($parts[0]);
         $ciphertext = hex2bin($parts[1]);
-
-        // Decrypt password
         $password = openssl_decrypt($ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-
-        // Check if the user has permission to check passwords
-        if (!$lonaDB->userManager->checkPermission($data['login']['name'], "password_check")) {
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+        $userManager = $lonaDB->getUserManager();
+        if (!$userManager->checkPermission($data['login']['name'], Permission::PASSWORD_CHECK)) {
+            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
         }
 
-        $checkPassword = $lonaDB->userManager->checkPassword($data['checkPass']['name'], $password);
+        $checkPassword = $userManager->checkPassword($data['checkPass']['name'], $password);
 
-        return $this->send($client, ["success" => true, "passCheck" => $checkPassword, "process" => $data['process']]);
+        return $this->sendSuccess($client, $data['process'], ["passCheck" => $checkPassword]);
     }
 };

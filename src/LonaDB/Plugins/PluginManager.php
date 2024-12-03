@@ -5,6 +5,7 @@ namespace LonaDB\Plugins;
 require 'vendor/autoload.php';
 
 use Exception;
+use LonaDB\Enums\Event;
 use LonaDB\LonaDB;
 use Phar;
 use RecursiveIteratorIterator;
@@ -19,7 +20,7 @@ class PluginManager
     /**
      * Constructor for the PluginManager class.
      *
-     * @param LonaDB $lonaDB The LonaDB instance.
+     * @param  LonaDB  $lonaDB  The LonaDB instance.
      */
     public function __construct(LonaDB $lonaDB)
     {
@@ -48,7 +49,7 @@ class PluginManager
         $results = scandir("plugins/");
         foreach ($results as $result) {
             if ($result != "." && $result != "..") {
-                $this->lonaDB->logger->info("Plugins found: ".$result);
+                $this->lonaDB->getLogger()->info("Plugins found: ".$result);
             }
         }
 
@@ -87,16 +88,16 @@ class PluginManager
                                 // Run plugin onEnable event directly, no need for fork
                                 $this->plugins[$conf['name']]->onEnable();
                             } catch (Exception $e) {
-                                $this->lonaDB->logger->Error("Could not load main file for plugin '".$conf['name']."'");
+                                $this->lonaDB->getLogger()->error("Could not load main file for plugin '".$conf['name']."'");
                             }
                         } else {
-                            $this->lonaDB->logger->Error("Main file for plugin '".$conf['name']."' is declared in config but doesn't exist");
+                            $this->lonaDB->getLogger()->error("Main file for plugin '".$conf['name']."' is declared in config but doesn't exist");
                         }
                     } else {
-                        $this->lonaDB->logger->Error("Could not load the plugin in '".$r."'");
+                        $this->lonaDB->getLogger()->error("Could not load the plugin in '".$r."'");
                     }
                 } else {
-                    $this->lonaDB->logger->Error("Missing config in '".$r."'");
+                    $this->lonaDB->getLogger()->error("Missing config in '".$r."'");
                 }
             } // Load plugin from folder => Plugin hasn't been compiled
             else {
@@ -121,11 +122,13 @@ class PluginManager
                                     $this->load_classphp("plugins/".$r."/");
 
                                     // Check if the plugin should be built
-                                    if($conf['build']){
+                                    if ($conf['build']) {
                                         // Build the PHAR
-                                        $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0, "plugins/".$conf['name']."-".$conf['version'].".phar");
+                                        $phar = new \Phar("plugins/".$conf['name']."-".$conf['version'].".phar", 0,
+                                            "plugins/".$conf['name']."-".$conf['version'].".phar");
                                         $phar->buildFromDirectory("plugins/".$r."/");
-                                        $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php', $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
+                                        $phar->setDefaultStub($conf['main']['namespace'].'/'.$conf['main']['class'].'.php',
+                                            $conf['main']['namespace'].'/'.$conf['main']['class'].'.php');
                                         $phar->setAlias($conf['name']."-".$conf['version'].".phar");
                                         $phar->stopBuffering();
                                     }
@@ -136,16 +139,16 @@ class PluginManager
                                     // Run plugin onEnable event directly, no need for fork
                                     $this->plugins[$conf['name']]->onEnable();
                                 } catch (Exception $e) {
-                                    $this->lonaDB->logger->error("Could not load main file for plugin '".$conf['name']."'");
+                                    $this->lonaDB->getLogger()->error("Could not load main file for plugin '".$conf['name']."'");
                                 }
                             } else {
-                                $this->lonaDB->logger->error("Main file for plugin '".$conf['name']."' is declared in config but doesn't exist");
+                                $this->lonaDB->getLogger()->error("Main file for plugin '".$conf['name']."' is declared in config but doesn't exist");
                             }
                         } else {
-                            $this->lonaDB->logger->error("Could not load the plugin in '".$r."'");
+                            $this->lonaDB->getLogger()->error("Could not load the plugin in '".$r."'");
                         }
                     } else {
-                        $this->lonaDB->logger->error("Missing configuration for plugin in '".$r."'");
+                        $this->lonaDB->getLogger()->error("Missing configuration for plugin in '".$r."'");
                     }
                 }
             }
@@ -162,13 +165,13 @@ class PluginManager
             // Kill the thread
             posix_kill($pid, SIGKILL);
         }
-        $this->lonaDB->Logger->Info("Plugin threads have been killed");
+        $this->lonaDB->getLogger()->Info("Plugin threads have been killed");
     }
 
     /**
      * Retrieves a plugin by name.
      *
-     * @param string $name The name of the plugin.
+     * @param  string  $name  The name of the plugin.
      * @return bool Returns the plugin instance if found, false otherwise.
      */
     public function getPlugin(string $name): bool
@@ -179,8 +182,8 @@ class PluginManager
     /**
      * Loads PHP classes from the specified path.
      *
-     * @param string $path The path to load classes from.
-     * @param Phar|null $phar The PHAR archive to load classes from, if applicable.
+     * @param  string  $path  The path to load classes from.
+     * @param  Phar|null  $phar  The PHAR archive to load classes from, if applicable.
      */
     private function load_classphp(string $path, Phar $phar = null): void
     {
@@ -188,88 +191,50 @@ class PluginManager
         if (str_starts_with($path, "phar")) {
             // Loop through PHAR
             foreach (new RecursiveIteratorIterator($phar) as $file) {
-                // Load a file if it's a PHP file
                 if (str_ends_with($file->getPathName(), ".php")) {
                     require_once $file->getPathName();
                 }
             }
         }
 
-        // Remove the last "/" if its last character in the path name
         if (str_ends_with($path, "/")) {
             $path = substr($path, 0, -1);
         }
-        // Scan directory
         $items = glob($path."/*");
-        // Loop through the directory
         foreach ($items as $item) {
-            // Check if a file ends with PHP
-            $isPhp = str_ends_with($item, ".php");
-
-            if ($isPhp) {
-                // Load file
-                require_once $item;
-            } else {
-                // If it's a folder, load PHP files inside
-                $this->load_classphp($item."/");
-            }
+            str_ends_with($item, ".php") ? require_once $item : $this->load_classphp($item."/");
         }
     }
 
     /**
      * Runs an event for all plugins.
      *
-     * @param string $executor The executor of the action.
-     * @param string $event The name of the event.
-     * @param array $arguments The arguments to pass to the event.
+     * @param  string  $executor  The executor of the action.
+     * @param  string  $event  The name of the event.
+     * @param  array  $arguments  The arguments to pass to the event.
      */
-    public function runEvent(string $executor, string $event, array $arguments): void
+    public function runEvent(string $executor, Event $event, array $arguments): void
     {
         if (!is_array($arguments)) {
-            $this->lonaDB->logger->Error("Invalid arguments provided for event: ".$event);
+            $this->lonaDB->getLogger()->error("Invalid arguments provided for event: ".$event);
             return;
         }
-        // Loop through all plugins
         foreach ($this->plugins as $pluginInstance) {
-            // Run event identified by name
-            switch ($event) {
-                case "tableCreate":
-                    $pluginInstance->onTableCreate($executor, $arguments['name']);
-                    break;
-                case "tableDelete":
-                    $pluginInstance->onTableDelete($executor, $arguments['name']);
-                    break;
-                case "valueSet":
-                    $pluginInstance->onValueSet($executor, $arguments['table'], $arguments['name'], $arguments['value']);
-                    break;
-                case "valueRemove":
-                    $pluginInstance->onValueRemove($executor, $arguments['table'], $arguments['name']);
-                    break;
-                case "functionCreate":
-                    $pluginInstance->onFunctionCreate($executor, $arguments['name'], $arguments['content']);
-                    break;
-                case "functionDelete":
-                    $pluginInstance->onFunctionDelete($executor, $arguments['name']);
-                    break;
-                case "functionExecute":
-                    $pluginInstance->onFunctionExecute($executor, $arguments['name']);
-                    break;
-                case "userCreate":
-                    $pluginInstance->onUserCreate($executor, $arguments['name']);
-                    break;
-                case "userDelete":
-                    $pluginInstance->onUserDelete($executor, $arguments['name']);
-                    break;
-                case "eval":
-                    $pluginInstance->onEval($executor, $arguments['content']);
-                    break;
-                case "permissionAdd":
-                    $pluginInstance->onPermissionAdd($executor, $arguments['user'], $arguments['name']);
-                    break;
-                case "permissionRemove":
-                    $pluginInstance->onPermissionRemove($executor, $arguments['user'], $arguments['name']);
-                    break;
-            }
+            $name = $arguments['name'];
+            match ($event->value) {
+                "tableCreate" => $pluginInstance->onTableCreate($executor, $name),
+                "tableDelete" => $pluginInstance->onTableDelete($executor, $name),
+                "valueSet" => $pluginInstance->onValueSet($executor, $arguments['table'], $name, $arguments['value']),
+                "valueRemove" => $pluginInstance->onValueRemove($executor, $arguments['table'], $name),
+                "functionCreate" => $pluginInstance->onFunctionCreate($executor, $name, $arguments['content']),
+                "functionDelete" => $pluginInstance->onFunctionDelete($executor, $name),
+                "functionExecute" => $pluginInstance->onFunctionExecute($executor, $name),
+                "userCreate" => $pluginInstance->onUserCreate($executor, $name),
+                "userDelete" => $pluginInstance->onUserDelete($executor, $name),
+                "eval" => $pluginInstance->onEval($executor, $arguments['content']),
+                "permissionAdd" => $pluginInstance->onPermissionAdd($executor, $arguments['user'], $name),
+                "permissionRemove" => $pluginInstance->onPermissionRemove($executor, $arguments['user'], $name),
+            };
         }
     }
 }

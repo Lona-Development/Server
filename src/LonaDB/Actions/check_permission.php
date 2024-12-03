@@ -1,5 +1,7 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -20,18 +22,21 @@ return new class implements ActionInterface {
      * @param  mixed  $client  The client to send the response to.
      * @return bool Returns true if the permission check is successful, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        // Check if the necessary parameters have been set
-        if(!$data['permission'] || !$data['permission']['name'] || !$data['permission']['user'])
-            return $this->send($client, ["success" => false, "err" => "missing_arguments", "process" => $data['process']]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        $permArray = $data['permission'];
 
-        // Check if the user has the necessary permissions
-        if(!$lonaDB->userManager->checkPermission($data['login']['name'], "permission_check"))
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
+        if (!$permArray || !$permArray['name'] || !$permArray['user']) {
+            return $this->sendError($client, ErrorCode::MISSING_ARGUMENTS, $data['process']);
+        }
 
-        // Check if the user has the permission
-        $permission = $lonaDB->userManager->checkPermission($data['permission']['user'], $data['permission']['name']);
+        $userManager = $lonaDB->getUserManager();
+        if (!$userManager->checkPermission($data['login']['name'], Permission::PERMISSION_CHECK)) {
+            return $this->sendError($client,  ErrorCode::NO_PERMISSIONS, $data['process']);
+        }
 
-        return $this->send($client, ["success" => true, "result" => $permission, "process" => $data['process']]);
+        $permission = $userManager->checkPermission($permArray['user'], Permission::findPermission($permArray['name']));
+
+        return $this->sendSuccess($client, $data['process'], ["result" => $permission]);
     }
 };

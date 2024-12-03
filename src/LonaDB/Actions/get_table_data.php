@@ -1,5 +1,7 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -22,19 +24,14 @@ return new class implements ActionInterface {
      */
     public function run(LonaDB $lonaDB, $data, $client): bool
     {
-        // Check if table exists
-        if (!$lonaDB->tableManager->getTable($data['table'])) {
-            return $this->send($client, ["success" => false, "err" => "table_missing", "process" => $data['process']]);
+        $table = $lonaDB->getTableManager()->getTable($data['table']);
+        if (!$table) {
+            return $this->sendError($client, ErrorCode::TABLE_MISSING, $data['process']);
         }
-        // Check if the user has read permissions on the desired table
-        if (!$lonaDB->tableManager->getTable($data['table'])->checkPermission($data['login']['name'], "read")) {
-            return $this->send($client, ["success" => false, "err" => "missing_permissions", "process" => $data['process']]);
+        if (!$table->checkPermission($data['login']['name'], Permission::READ)) {
+            return $this->sendError($client, ErrorCode::MISSING_PERMISSION, $data['process']);
         }
-        // Get a table data array
-        $tableData = $lonaDB->tableManager->getTable($data['table'])->getData();
-
-        // Create a response array
-        $response = ["success" => true, "data" => ($tableData == [] ? [] : $tableData), "process" => $data['process']];
-        return $this->Send($client, $response);
+        $tableData = $table->getData();
+        return $this->sendSuccess($client, $data['process'], ["data" => ($tableData === [] ? [] : $tableData)]);
     }
 };

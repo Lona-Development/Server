@@ -1,5 +1,8 @@
 <?php
 
+use LonaDB\Enums\ErrorCode;
+use LonaDB\Enums\Event;
+use LonaDB\Enums\Permission;
 use LonaDB\Interfaces\ActionInterface;
 use LonaDB\LonaDB;
 use LonaDB\Traits\ActionTrait;
@@ -20,16 +23,22 @@ return new class implements ActionInterface {
      * @param  mixed  $client  The client to send the response to.
      * @return bool Returns true if the permission is removed successfully, false otherwise.
      */
-    public function run(LonaDB $lonaDB, $data, $client) : bool {
-        // Check if username has been set
-        if(!$data['permission']['user'])
-            return $this->send($client, ["success" => false, "err" => "missing_user", "process" => $data['process']]);
-        // Check if user is allowed to remove permissions
-        if(!$lonaDB->userManager->checkPermission($data['login']['name'], "permission_remove"))
-            return $this->send($client, ["success" => false, "err" => "no_permission", "process" => $data['process']]);
-        // Remove permission
-        $lonaDB->userManager->removePermission($data['permission']['user'], $data['permission']['name'], $data['login']['name']);
-        $lonaDB->pluginManager->runEvent($data['login']['name'], "permissionRemove", [ "user" => $data['permission']['user'], "name" => $data['permission']['name'] ]);
-        return $this->send($client, ["success" => true, "process" => $data['process']]);
+    public function run(LonaDB $lonaDB, $data, $client): bool
+    {
+        if (!$data['permission']['user']) {
+            return $this->sendError($client, ErrorCode::MISSING_USER, $data['process']);
+        }
+        if (!$lonaDB->getUserManager()->checkPermission($data['login']['name'], Permission::PERMISSION_REMOVE)) {
+            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
+        }
+        $permissionName = $data['permission']['name'];
+        $permissionUser = $data['permission']['user'];
+        $lonaDB->getUserManager()->removePermission($permissionUser, Permission::findPermission($permissionName));
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_REMOVE,
+            [
+                "user" => $permissionUser,
+                "name" => $permissionName
+            ]);
+        return $this->sendSuccess($client, $data['process'], []);
     }
 };

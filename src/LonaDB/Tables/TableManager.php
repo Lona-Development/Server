@@ -2,15 +2,18 @@
 
 namespace LonaDB\Tables;
 
-require 'vendor/autoload.php';
+require '../../vendor/autoload.php';
 
 use DirectoryIterator;
+use LonaDB\Enums\Permission;
+use LonaDB\Enums\Role;
 use LonaDB\LonaDB;
 
 class TableManager
 {
 
     private LonaDB $lonaDB;
+    /* @var Table[] $tables */
     private array $tables;
 
     /**
@@ -23,7 +26,6 @@ class TableManager
         $this->lonaDB = $lonaDB;
         $this->tables = array();
 
-        //Check if the directory "data/tables/" exists, create if it doesn't
         if (!is_dir("data/")) {
             mkdir("data/");
         }
@@ -31,14 +33,9 @@ class TableManager
             mkdir("data/tables/");
         }
 
-        //Counter variable for counting tables and creating the Default table if none exist
         $counter = 0;
-
-        //For all files and folders in "data/tables/"
         foreach (new DirectoryIterator('data/tables') as $fileInfo) {
-            //Check if the file extension is ".lona"
             if (str_ends_with($fileInfo->getFilename(), ".lona")) {
-                //Initialize table instance
                 $this->tables[substr($fileInfo->getFilename(), 0, -5)] = new Table($this->lonaDB, false,
                     $fileInfo->getFilename());
                 $counter = $counter + 1;
@@ -56,14 +53,11 @@ class TableManager
      * Retrieves a table by name.
      *
      * @param  string  $name  The name of the table.
-     * @return Table|false The table instance if found, false otherwise.
+     * @return ?Table The table instance if found, false otherwise.
      */
-    public function getTable(string $name): false|Table
+    public function getTable(string $name): ?Table
     {
-        if (!$this->tables[$name]) {
-            return false;
-        }
-        return $this->tables[$name];
+        return $this->tables[$name] ?? null;
     }
 
     /**
@@ -74,26 +68,13 @@ class TableManager
      */
     public function listTables(string $user = ""): array
     {
-        $tables = array();
-
-        //Check if there is a certain user we want the tables for
-        if ($user !== "") {
-            foreach ($this->tables as $table) {
-                //Check if the user has read or write permissions on the table => Push the table to the array
-                if ($table->checkPermission($user, "write")) {
-                    $tables[] = $table->name;
-                } else {
-                    if ($table->checkPermission($user, "read")) {
-                        $tables[] = $table->name;
-                    }
-                }
-            }
-        } else {
-            foreach ($this->tables as $table) {
+        /* @var Table $table */
+        foreach ($this->tables as $table) {
+            if ($user === "" || $table->hasAnyPermission($user, [Permission::WRITE, Permission::READ])) {
                 $tables[] = $table->name;
             }
         }
-        return $tables;
+        return $tables ?? [];
     }
 
     /**
@@ -105,13 +86,11 @@ class TableManager
      */
     public function createTable(string $name, string $owner): bool
     {
-        //Check if there already is a table with the exact same name
-        if ($this->getTable($name)) {
-            return false;
+        if (!$this->getTable($name)) {
+            $this->tables[$name] = new Table($this->lonaDB, true, $name, $owner);
+            return true;
         }
-
-        $this->tables[$name] = new Table($this->lonaDB, true, $name, $owner);
-        return true;
+        return false;
     }
 
     /**
@@ -123,18 +102,14 @@ class TableManager
      */
     public function deleteTable(string $name, string $user): bool
     {
-        if (!$this->getTable($name)) {
-            return false;
+        if ($this->getTable($name)) {
+            $role = $this->lonaDB->getUserManager()->getRole($user);
+            if ($user === $this->tables[$name]->getOwner() && $role->isIn([Role::ADMIN, Role::SUPERUSER])) {
+                unlink("data/tables/".$name.".lona");
+                unset($this->tables[$name]);
+                return true;
+            }
         }
-
-        //Check if the deleting user is the table owner, a global administrator or superuser
-        if ($user !== $this->tables[$name]->getOwner() && $this->lonaDB->userManager->getRole($user) !== "Administrator" && $this->lonaDB->userManager->getRole($user) !== "Superuser") {
-            return false;
-        }
-
-        //Delete table file and instance from the table array
-        unlink("data/tables/".$name.".lona");
-        unset($this->tables[$name]);
-        return true;
+        return false;
     }
 }
