@@ -146,6 +146,18 @@ class UserManager
             $this->lonaDB->getLogger()->error("User '".$name."' doesn't exist");
             return false;
         }
+
+        //Change table owner to root
+        foreach ($this->lonaDB->getTableManager()->listTables($name) as $table) {
+            if ($this->lonaDB->getTableManager()->getTable($table)->getOwner() === $name)
+                $this->lonaDB->getTableManager()->getTable($table)->setOwner("root", "root");
+        }
+
+        //remove table permissions using unset
+        foreach ($this->lonaDB->getTableManager()->listTables() as $table) {
+            $this->lonaDB->getTableManager()->getTable($table)->removeUserPermissions($name);
+        }
+
         unset($this->users[$name]);
         $this->lonaDB->getLogger()->user("Deleted user '".$name."'");
         $this->save();

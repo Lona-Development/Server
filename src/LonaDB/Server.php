@@ -72,6 +72,7 @@ class Server
 
         $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 1);
+        socket_set_option($this->socket, SOL_SOCKET, SO_REUSEPORT, 1);
 
         if (!$this->socket) {
             $this->lonaDB->getLogger()->error("Failed to create socket: ".socket_strerror(socket_last_error()));

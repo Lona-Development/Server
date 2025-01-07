@@ -13,6 +13,7 @@ class Table
 {
     private string $file;
     private array $data;
+    private int $logLevel;
     private array $permissions;
     private string $owner;
     public string $name;
@@ -39,12 +40,42 @@ class Table
             $this->data = $temp["data"];
             $this->permissions = $temp["permissions"];
             $this->owner = $temp["owner"];
+
+            if(isset($temp["logLevel"]))
+                $this->logLevel = $temp["logLevel"];
+            else {
+                $this->logLevel = 0;
+                $logFile = fopen("./data/wal/".$this->file.".lona", 'w');
+
+                if ($logFile === false) {
+                    throw new \Exception("Failed to create write-ahead log file for table '".$this->file."'.");
+                }
+
+                if (!flock($logFile, LOCK_EX)) {
+                    fclose($logFile);
+                    throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
+                }
+
+                $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+                if (fwrite($logFile, openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($iv))) === false) {
+                    flock($logFile, LOCK_UN);
+                    fclose($logFile);
+                    throw new \Exception("Failed to write to the write-ahead log file for table '".$this->file."'.");
+                }
+
+                flock($logFile, LOCK_UN);
+                fclose($logFile);
+
+                $this->lonaDB->getLogger()->table("Created missing write-ahead log file for table '".$this->file."'");
+            }
+            $this->checkWriteAheadLog();
         } else {
             $this->lonaDB->getLogger()->table("Trying to generate table '".$name."'");
             $this->file = $name;
             $this->data = array();
             $this->permissions = array();
             $this->owner = $owner;
+            $this->logLevel = 0;
             $this->save();
         }
 
@@ -85,6 +116,8 @@ class Table
             return false;
         }
 
+        $this->writeAheadLog("setOwner", $name, $user);
+
         $this->owner = $name;
         $this->save();
         return true;
@@ -103,6 +136,9 @@ class Table
         if (!$this->checkPermission($user, Permission::WRITE)) {
             return false;
         }
+
+        $this->writeAheadLog("set", $name, $value, $user);
+
         $this->data[$name] = $value;
         $this->save();
         return true;
@@ -120,6 +156,9 @@ class Table
         if (!$this->checkPermission($user, Permission::WRITE)) {
             return false;
         }
+
+        $this->writeAheadLog("delete", $name, $user);
+
         unset($this->data[$name]);
         $this->save();
         return true;
@@ -225,6 +264,8 @@ class Table
             return false;
         }
 
+        $this->writeAheadLog("addPermission", $name, $permission, $user);
+
         $this->permissions[$name][$permission->value] = true;
         $this->save();
         return true;
@@ -247,6 +288,8 @@ class Table
             return false;
         }
 
+        $this->writeAheadLog("removePermission", $name, $permission, $user);
+
         unset($this->permissions[$name][$permission->value]);
         if ($this->permissions[$name] === array()) {
             unset($this->permissions[$name]);
@@ -256,18 +299,194 @@ class Table
     }
 
     /**
+     * Removes a user from the table entirely.
+     *
+     * @param  string  $name  The name of the user.
+     */
+    public function removeUserPermissions(string $name): void
+    {
+        $this->writeAheadLog("removeUserPermissions", $name);
+        unset($this->permissions[$name]);
+        $this->save();
+    }
+
+    /**
+     * Reads the write-ahead log and applies the actions to the table.
+     */
+    public function checkWriteAheadLog(): void {
+        try {
+            $logFile = fopen("./data/wal/".$this->file.".lona", 'r');
+            if ($logFile === false) {
+                throw new \Exception("Failed to open write-ahead log file for table '".$this->file."'.");
+            }
+
+            if (!flock($logFile, LOCK_EX)) {
+                fclose($logFile);
+                throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
+            }
+
+            $parts = explode(':', file_get_contents("./data/wal/".$this->file.".lona"));
+            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
+
+            if($this->logLevel == 0 && $log == []) {
+                flock($logFile, LOCK_UN);
+                fclose($logFile);
+                return;
+            }
+            
+            $lastAction = 0;
+
+            foreach ($log as $key => $value) {
+                if ($key > $lastAction) {
+                    $lastAction = $key;
+                }
+            }
+
+            if ($lastAction > $this->logLevel) {
+                $counter = 0;
+                for ($i = $this->logLevel; $i <= $lastAction; $i++) {
+                    foreach ($log[$i] as $action) {
+                        switch ($action[1]) {
+                            case "set":
+                                $this->data[$action[2]] = $action[3];
+                                break;
+                            case "delete":
+                                unset($this->data[$action[2]]);
+                                break;
+                            case "setOwner":
+                                $this->owner = $action[2];
+                                break;
+                            case "addPermission":
+                                $this->permissions[$action[2]][$action[3]] = true;
+                                break;
+                            case "removePermission":
+                                unset($this->permissions[$action[2]][$action[3]]);
+                                if ($this->permissions[$action[2]] === array()) {
+                                    unset($this->permissions[$action[2]]);
+                                }
+                                break;
+                            case "removeUserPermissions":
+                                unset($this->permissions[$action[2]]);
+                                break;
+                        }
+                        $counter++;
+                    }
+                }
+
+                $this->lonaDB->getLogger()->table("Applied ".$counter." actions to table '".$this->file."' from write-ahead log.");
+
+                $this->logLevel = $lastAction;
+                $this->save();
+            }
+
+            flock($logFile, LOCK_UN);
+            fclose($logFile);
+        } catch (\Exception $exception) {
+            $this->lonaDB->getLogger()->Error($exception->getMessage());
+        }
+    }
+
+    /**
+     * Adds a action to the write-ahead log.
+     */
+    private function writeAheadLog(string $action, string $name, mixed $value = "", string $user = ""): void {
+        try {
+            $this->logLevel++;
+
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+
+            $parts = explode(':', file_get_contents("./data/wal/".$this->file.".lona"));
+            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
+
+            $log[$this->logLevel] = [time(), $action, $name, $value, $user];
+
+            $logFile = fopen("./data/wal/".$this->file.".lona", 'w');
+            
+            if ($logFile === false) {
+                throw new \Exception("Failed to open write-ahead log file for table '".$this->file."'.");
+            }
+
+            if(!flock($logFile, LOCK_EX)) {
+                fclose($logFile);
+                throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
+            }
+
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+            $encrypted = openssl_encrypt(json_encode($log), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
+
+            if (fwrite($logFile, $encrypted.":".base64_encode($iv)) === false) {
+                flock($logFile, LOCK_UN);
+                fclose($logFile);
+                throw new \Exception("Failed to write to the write-ahead log file for table '".$this->file."'.");
+            }
+
+            flock($logFile, LOCK_UN);
+            fclose($logFile);
+        } catch (\Exception $exception) {
+            $this->lonaDB->getLogger()->Error($exception->getMessage());
+        }
+    }
+
+    /**
      * Saves the table data to a file.
      */
     private function save(): void
     {
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-        $save = [
-            "data" => $this->data,
-            "permissions" => $this->permissions,
-            "owner" => $this->owner
-        ];
-
-        $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
-        file_put_contents("./data/tables/".$this->file.".lona", $encrypted.":".base64_encode($iv));
+        try {
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+            
+            $save = [
+                "data" => $this->data,
+                "permissions" => $this->permissions,
+                "owner" => $this->owner,
+                "logLevel" => $this->logLevel
+            ];
+            
+            $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
+            
+            $tempFile = "./data/tables/".$this->file.".lona.tmp";
+            
+            $tempFileHandle = fopen($tempFile, 'w');
+            if ($tempFileHandle === false) {
+                throw new \Exception("Failed to open temporary table file for writing.");
+            }
+            
+            if (!flock($tempFileHandle, LOCK_EX)) {
+                fclose($tempFileHandle);
+                throw new \Exception("Failed to acquire lock on the temporary table file.");
+            }
+            
+            if (fwrite($tempFileHandle, $encrypted.":".base64_encode($iv)) === false) {
+                fclose($tempFileHandle);
+                throw new \Exception("Failed to write to the temporary table file.");
+            }
+            
+            flock($tempFileHandle, LOCK_UN);
+            fclose($tempFileHandle);
+            
+            $originalFile = "./data/tables/".$this->file.".lona";
+            
+            $originalFileHandle = fopen($originalFile, 'c');
+            if ($originalFileHandle === false) {
+                throw new \Exception("Failed to open original table file for renaming.");
+            }
+            
+            if (!flock($originalFileHandle, LOCK_EX)) {
+                fclose($originalFileHandle);
+                throw new \Exception("Failed to acquire lock on the original table file.");
+            }
+            
+            if (!rename($tempFile, $originalFile)) {
+                flock($originalFileHandle, LOCK_UN);
+                fclose($originalFileHandle);
+                throw new \Exception("Failed to replace the original table file.");
+            }
+            
+            flock($originalFileHandle, LOCK_UN);
+            fclose($originalFileHandle);
+        } catch (\Exception $exception) {
+            // Log the error message using the logger
+            $this->lonaDB->getLogger()->Error($exception->getMessage());
+        }
     }
 }

@@ -32,6 +32,9 @@ class TableManager
         if (!is_dir("data/tables/")) {
             mkdir("data/tables/");
         }
+        if(!is_dir("data/wal/")) {
+            mkdir("data/wal/");
+        }
 
         $counter = 0;
         foreach (new DirectoryIterator('data/tables') as $fileInfo) {

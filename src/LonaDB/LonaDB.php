@@ -16,7 +16,6 @@ use LonaDB\Users\UserManager;
 
 class LonaDB
 {
-
     public array $config;
     public bool $running = false;
     public string $encryptionKey;
@@ -43,7 +42,7 @@ class LonaDB
             echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
             error_reporting(E_ERROR | E_PARSE);
 
-            $this->logger->infoCache("LonaDB v4.6.0");
+            $this->logger->infoCache("LonaDB v5.0.0");
             $this->logger->infoCache("Looking for config.");
 
             file_put_contents("configuration.lona", file_get_contents("configuration.lona"));
