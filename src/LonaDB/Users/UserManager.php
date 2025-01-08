@@ -14,6 +14,7 @@ use LonaDB\LonaDB;
 class UserManager
 {
     private array $users = [];
+    private int $logLevel;
     private LonaDB $lonaDB;
 
     /**
@@ -25,8 +26,13 @@ class UserManager
     {
         $this->lonaDB = $lonaDB;
 
-        if (!is_dir("data/")) {
-            mkdir("data/");
+        $path = "data/wal/system/";
+        $temp = "";
+        for(split("/", $path) as $folder) {
+            $temp .= $folder."/";
+            if(!is_dir($folder)) {
+                mkdir($folder);
+            }
         }
 
         //Create an empty Users.lona file if it doesn't exist
@@ -36,7 +42,10 @@ class UserManager
             //Create an IV for encryption
             $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
             //Create an empty Array
-            $save = array();
+            $save = [
+                "users" => [],
+                "logLevel" => 0
+            ];
 
             //Convert and decrypt the array
             $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
@@ -48,8 +57,13 @@ class UserManager
         //Split the decrypted Users.lona from the IV
         $parts = explode(':', file_get_contents("./data/Users.lona"));
         //Load the Users
-        $this->users = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
+        $temp = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
             base64_decode($parts[1])), true);
+        
+        $this->users = $temp["users"];
+        $this->logLevel = $temp["logLevel"];
+
+        $this->checkWriteAheadLog();
     }
 
     /**
@@ -106,7 +120,7 @@ class UserManager
     public function createUser(string $name, string $password): bool
     {
         //If username is root, abort
-        if ($name === "root") {
+        if ($name === "root" || $name === "" || $password === "" || $name === "users") {
             return false;
         }
         $this->lonaDB->getLogger()->user("Trying to create user '".$name."'");
@@ -115,7 +129,9 @@ class UserManager
             $this->lonaDB->getLogger()->error("User '".$name."' already exists");
             return false;
         }
+
         //Add a user to the user's array
+        $this->writeAheadLog("create", $name, $password);
         $this->users[$name] = array(
             "role" => Role::USER->value,
             "password" => $password,
@@ -158,6 +174,7 @@ class UserManager
             $this->lonaDB->getTableManager()->getTable($table)->removeUserPermissions($name);
         }
 
+        $this->writeAheadLog("delete", $name);
         unset($this->users[$name]);
         $this->lonaDB->getLogger()->user("Deleted user '".$name."'");
         $this->save();
@@ -184,6 +201,8 @@ class UserManager
         if (!$this->checkUser($name)) {
             return false;
         }
+
+        $this->writeAheadLog("setRole", $name, $role->value);
         $this->users[$name]['role'] = $role->value;
         $this->save();
         return true;
@@ -257,6 +276,7 @@ class UserManager
             return false;
         }
         //Add the permission to the user
+        $this->writeAheadLog("addPermission", $name, $permission->value);
         $this->users[$name]['permissions'][$permission->value] = true;
         $this->lonaDB->getLogger()->user("Added permission '".$permission->value."' to user '".$name."'");
         $this->save();
@@ -281,10 +301,132 @@ class UserManager
             return false;
         }
         //Remove the permission from the user
+        $this->writeAheadLog("removePermission", $name, $permission->value);
         unset($this->users[$name]['permissions'][$permission->value]);
         $this->lonaDB->getLogger()->user("Removed permission '".$permission->value."' from user '".$name."'");
         $this->save();
         return true;
+    }
+
+    /**
+     * Checks the write-ahead log file for changes.
+     */
+    public function checkWriteAheadLog(): void
+    {
+        try {
+            $logFile = fopen("./data/wal/system/Users.lona", "r");
+            if(!$logFile) {
+                //create the file with empty content
+                $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+                file_put_contents("./data/wal/system/Users.lona", openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv).":".base64_encode($iv));
+                $logFile = fopen("./data/wal/system/Users.lona", "r");
+            }
+
+            if(!flock($logFile, LOCK_EX)) {
+                throw new \Exception("Could not lock write-ahead log file for users table");
+            }
+
+            $parts = explode(':', file_get_contents("./data/wal/system/Users.lona"));
+            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
+                base64_decode($parts[1])), true);
+
+            if($this->logLevel == 0 && $log == []) {
+                flock($logFile, LOCK_UN);
+                fclose($logFile);
+                return;
+            }
+
+            $lastAction = 0;
+
+            foreach($log as $key => $value) {
+                if($key > $lastAction) {
+                    $lastAction = $key;
+                }
+            }
+
+            if($lastAction > $this->logLevel) {
+                $counter = 0;
+                for($i = $this->logLevel; $i <= $lastAction; $i++) {
+                    switch($log[$i]["action"]) {
+                        case "create":
+                            $this->users[$log[$i]["name"]] = array(
+                                "role" => Role::DEFAULT->value,
+                                "password" => $log[$i]["data"],
+                                "permissions" => [
+                                    "default" => true
+                                ]
+                            );
+                            break;
+                        case "delete":
+                            unset($this->users[$log[$i]["name"]]);
+                            break;
+                        case "setRole":
+                            $this->users[$log[$i]["name"]]["role"] = $log[$i]["data"];
+                            break;
+                        case "addPermission":
+                            $this->users[$log[$i]["name"]]["permissions"][$log[$i]["data"]] = true;;
+                            break;
+                        case "removePermission":
+                            $this->users[$log[$i]["name"]]["permissions"][$log[$i]["data"]] = false;
+                            break;
+                    }
+                    $counter++;
+                }
+
+                $this->logLevel = $lastAction;
+                $this->save();
+            }
+
+            flock($logFile, LOCK_UN);
+            fclose($logFile);
+        } catch (Exception $e) {
+            $this->lonaDB->getLogger()->error("Error checking write-ahead log file for users table: ".$e->getMessage());
+        }
+    }
+
+    /**
+     * Writes to the write-ahead log file.
+     *
+     * @param  string  $action  The action to log.
+     * @param  string  $name  The name of the user.
+     * @param  string  $data  The data to log.
+     */
+    public function writeAheadLog(string $action, string $name, string $data = ""): void {
+        try {
+            $this->logLevel++;
+
+            $parts = explode(':', file_get_contents("./data/wal/system/Users.lona"));
+            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
+
+
+            $log[$this->logLevel] = [
+                "action" => $action,
+                "name" => $name,
+                "data" => $data
+            ];
+
+            $logFile = fopen("./data/wal/system/Users.lona", "w+");
+
+            if(!$logFile) {
+                throw new \Exception("Could not open write-ahead log file for users table");
+            }
+
+            if(!flock($logFile, LOCK_EX)) {
+                throw new \Exception("Could not lock write-ahead log file for users table");
+            }
+            
+            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+            $encrypted = openssl_encrypt(json_encode($log), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
+
+            if(!fwrite($logFile, $encrypted.":".base64_encode($iv))) {
+                throw new \Exception("Could not write to write-ahead log file for users table");
+            }
+
+            flock($logFile, LOCK_UN);
+            fclose($logFile);
+        } catch (Exception $e) {
+            $this->lonaDB->getLogger()->error("Error writing to write-ahead log file for users table: ".$e->getMessage());
+        }
     }
 
     /**
@@ -295,9 +437,29 @@ class UserManager
         //Generate IV
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
         //Encrypt Users array
-        $encrypted = openssl_encrypt(json_encode($this->users), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
+        $encrypted = openssl_encrypt(json_encode(array(
+            "users" => $this->users,
+            "logLevel" => $this->logLevel
+        )), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
             $iv);
         //Save the encrypted data + the IV to Users.lona
-        file_put_contents("./data/Users.lona", $encrypted.":".base64_encode($iv));
+        $file = fopen("./data/Users.lona", "w");
+        if(!$file) {
+            $this->lonaDB->getLogger()->error("Could not open Users.lona file for writing");
+            return;
+        }
+
+        if(!flock($file, LOCK_EX)) {
+            $this->lonaDB->getLogger()->error("Could not lock Users.lona file for writing");
+            return;
+        }
+
+        if(!fwrite($file, $encrypted.":".base64_encode($iv))) {
+            $this->lonaDB->getLogger()->error("Could not write to Users.lona file");
+            return;
+        }
+
+        flock($file, LOCK_UN);
+        fclose($file);
     }
 }

@@ -33,4 +33,23 @@ enum Role: string
     {
         return $this->value != $role->value;
     }
+
+    public function all(): Array
+    {
+        return array(
+            "Superuser" => Role::SUPERUSER,
+            "Administrator" => Role::ADMIN,
+            "User" => Role::USER,
+        );
+    }
+
+    public function findByName(string $name): ?Role
+    {
+        return match (strtolower($name)) {
+            'superuser' => Role::SUPERUSER,
+            'administrator' => Role::ADMIN,
+            'user' => Role::USER,
+            default => null,
+        };
+    }
 }

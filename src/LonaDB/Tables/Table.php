@@ -191,8 +191,7 @@ class Table
         $role = $this->lonaDB->getUserManager()->getRole($user);
         if (
             $user == $this->owner ||
-            $role->isIn([Role::ADMIN, Role::SUPERUSER]) ||
-            $this->permissions[$user][Permission::ADMIN->value]
+            $role->isIn([Role::ADMIN, Role::SUPERUSER])
         ) {
             return true;
         }
@@ -212,8 +211,7 @@ class Table
         $role = $this->lonaDB->getUserManager()->getRole($user);
         if (
             $user == $this->owner ||
-            $role->isIn([Role::ADMIN, Role::SUPERUSER]) ||
-            $this->permissions[$user][Permission::ADMIN->value]
+            $role->isIn([Role::ADMIN, Role::SUPERUSER])
         ) {
             return true;
         }
@@ -259,7 +257,7 @@ class Table
     public function addPermission(string $name, Permission $permission, string $user): bool
     {
         $role = $this->lonaDB->getUserManager()->getRole($user);
-        if ($user !== $this->owner && !$this->checkPermission($user, Permission::ADMIN) &&
+        if ($user !== $this->owner &&
             $role->isNotIn([Role::ADMIN, Role::SUPERUSER])) {
             return false;
         }
@@ -282,7 +280,7 @@ class Table
     public function removePermission(string $name, Permission $permission, string $user): bool
     {
         $role = $this->lonaDB->getUserManager()->getRole($user);
-        if ($user !== $this->owner && !$this->checkPermission($user, Permission::ADMIN) && $role->isNotIn([
+        if ($user !== $this->owner && $role->isNotIn([
                 Role::ADMIN, Role::SUPERUSER
             ])) {
             return false;
@@ -316,7 +314,7 @@ class Table
     public function checkWriteAheadLog(): void {
         try {
             $logFile = fopen("./data/wal/".$this->file.".lona", 'r');
-            if ($logFile === false) {
+            if (!$logFile) {
                 throw new \Exception("Failed to open write-ahead log file for table '".$this->file."'.");
             }
 
@@ -393,8 +391,6 @@ class Table
         try {
             $this->logLevel++;
 
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-
             $parts = explode(':', file_get_contents("./data/wal/".$this->file.".lona"));
             $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
 
@@ -402,7 +398,7 @@ class Table
 
             $logFile = fopen("./data/wal/".$this->file.".lona", 'w');
             
-            if ($logFile === false) {
+            if (!$logFile) {
                 throw new \Exception("Failed to open write-ahead log file for table '".$this->file."'.");
             }
 
@@ -444,46 +440,25 @@ class Table
             
             $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
             
-            $tempFile = "./data/tables/".$this->file.".lona.tmp";
+            $filePath = "./data/tables/".$this->file.".lona";
             
-            $tempFileHandle = fopen($tempFile, 'w');
-            if ($tempFileHandle === false) {
+            $file = fopen($filePath, 'w');
+            if ($file === false) {
                 throw new \Exception("Failed to open temporary table file for writing.");
             }
             
-            if (!flock($tempFileHandle, LOCK_EX)) {
-                fclose($tempFileHandle);
+            if (!flock($file, LOCK_EX)) {
+                fclose($file);
                 throw new \Exception("Failed to acquire lock on the temporary table file.");
             }
             
-            if (fwrite($tempFileHandle, $encrypted.":".base64_encode($iv)) === false) {
-                fclose($tempFileHandle);
+            if (fwrite($file, $encrypted.":".base64_encode($iv)) === false) {
+                fclose($file);
                 throw new \Exception("Failed to write to the temporary table file.");
             }
             
-            flock($tempFileHandle, LOCK_UN);
-            fclose($tempFileHandle);
-            
-            $originalFile = "./data/tables/".$this->file.".lona";
-            
-            $originalFileHandle = fopen($originalFile, 'c');
-            if ($originalFileHandle === false) {
-                throw new \Exception("Failed to open original table file for renaming.");
-            }
-            
-            if (!flock($originalFileHandle, LOCK_EX)) {
-                fclose($originalFileHandle);
-                throw new \Exception("Failed to acquire lock on the original table file.");
-            }
-            
-            if (!rename($tempFile, $originalFile)) {
-                flock($originalFileHandle, LOCK_UN);
-                fclose($originalFileHandle);
-                throw new \Exception("Failed to replace the original table file.");
-            }
-            
-            flock($originalFileHandle, LOCK_UN);
-            fclose($originalFileHandle);
+            flock($file, LOCK_UN);
+            fclose($file);
         } catch (\Exception $exception) {
             // Log the error message using the logger
             $this->lonaDB->getLogger()->Error($exception->getMessage());

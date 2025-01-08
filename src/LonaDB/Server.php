@@ -163,7 +163,7 @@ class Server
             }
 
             $this->actions[$data['action']]->run($this->lonaDB, $data, $client);
-        } catch (Exception $e) {
+        } catch (Mixed $e) {
             $this->lonaDB->getLogger()->error($e->getMessage());
         }
     }

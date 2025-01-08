@@ -2,13 +2,11 @@
 
 namespace LonaDB;
 
-//Encryption/decryption
 define('AES_256_CBC', 'aes-256-cbc');
 
 require '../vendor/autoload.php';
 
 use Exception;
-use JetBrains\PhpStorm\NoReturn;
 use LonaDB\Functions\FunctionManager;
 use LonaDB\Plugins\PluginManager;
 use LonaDB\Tables\TableManager;
@@ -51,7 +49,6 @@ class LonaDB
             } else {
                 //Split the encrypted content from the IV
                 $parts = explode(':', file_get_contents("./configuration.lona"));
-                //Decrypt the config using the EncryptionKey and IV
                 $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->encryptionKey, 0, base64_decode($parts[1]));
 
                 //If the given EncryptionKey didn't work, throw an error and exit
@@ -76,10 +73,10 @@ class LonaDB
                 $this->logger->loadLogger();
                 $this->logger->dropCache();
 
-                $this->logger->info("Loading TableManager class...");
-                $this->tableManager = new TableManager($this);
                 $this->logger->info("Loading UserManager class...");
                 $this->userManager = new UserManager($this);
+                $this->logger->info("Loading TableManager class...");
+                $this->tableManager = new TableManager($this);
                 $this->logger->info("Loading FunctionManager class...");
                 $this->functionManager = new FunctionManager($this);
                 $this->logger->info("Loading PluginManager class...");
@@ -163,7 +160,6 @@ class LonaDB
     /**
      * Stops the LonaDB server and kills plugin threads.
      */
-    #[NoReturn]
     public function stop(): void
     {
         echo chr(27).chr(91).'H'.chr(27).chr(91).'J';

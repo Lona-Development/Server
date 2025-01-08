@@ -68,7 +68,7 @@ class Logger
      */
     public function infoCache(string $message): void
     {
-        $log = "[INFO] ".$message;
+        $log = "[INFO] ".$message."\n";
         echo($log);
         $this->infoCache = $this->infoCache.date("Y-m-d h:i:s").' '.$log;
     }

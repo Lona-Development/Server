@@ -16,7 +16,6 @@ enum Permission: string
     case GET_TABLES = "get_tables";
     case GET_USERS = "get_users";
     case PERMISSION_REMOVE = "permission_remove";
-    case ADMIN = "admin";
     case READ = "read";
     case WRITE = "write";
 
@@ -36,10 +35,34 @@ enum Permission: string
             "get_tables" => Permission::GET_TABLES,
             "get_users" => Permission::GET_USERS,
             "permission_remove" => Permission::PERMISSION_REMOVE,
-            "admin" => Permission::ADMIN,
             "read" => Permission::READ,
             "write" => Permission::WRITE,
             default => null,
         };
+    }
+
+    static function all(): Array
+    {
+        //Return array name => permission
+        $permissions = array(
+            "Add permissions" => Permission::PERMISSION_ADD,
+            "Create functions" => Permission::CREATE_FUNCTION,
+            "Check passwords" => Permission::PASSWORD_CHECK,
+            "Check permissions" => Permission::PERMISSION_CHECK,
+            "Create tables" => Permission::TABLE_CREATE,
+            "Create users" => Permission::USER_CREATE,
+            "Delete functions" => Permission::DELETE_FUNCTION,
+            "Delete tables" => Permission::TABLE_DELETE,
+            "Delete users" => Permission::USER_DELETE,
+            "See tables" => Permission::GET_TABLES,
+            "See users" => Permission::GET_USERS,
+            "Remove permissions" => Permission::PERMISSION_REMOVE,
+            "Read" => Permission::READ,
+            "Write" => Permission::WRITE,
+        );
+
+        ksort($permissions);
+
+        return $permissions;
     }
 }
