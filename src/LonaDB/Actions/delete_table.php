@@ -31,9 +31,6 @@ return new class implements ActionInterface {
         if (empty($tableName)) {
             return $this->sendError($client, ErrorCode::BAD_TABLE_NAME, $data['process']);
         }
-        if (!$lonaDB->getUserManager()->checkPermission($username, Permission::TABLE_DELETE)) {
-            return $this->sendError($client, ErrorCode::NO_PERMISSIONS, $data['process']);
-        }
         $tableManager = $lonaDB->getTableManager();
         if (!$tableManager->getTable($tableName)) {
             return $this->sendError($client, ErrorCode::TABLE_MISSING, $data['process']);

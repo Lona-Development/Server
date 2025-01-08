@@ -28,7 +28,7 @@ class TableManager
 
         $path = "data/tables/";
         $temp = "";
-        foreach(split("/", $path) as $dir) {
+        foreach(explode("/", $path) as $dir) {
             $temp = $temp . $dir . "/";
             if (!is_dir($dir)) {
                 mkdir($dir);

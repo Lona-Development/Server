@@ -28,7 +28,7 @@ class UserManager
 
         $path = "data/wal/system/";
         $temp = "";
-        for(split("/", $path) as $folder) {
+        foreach(explode("/", $path) as $folder) {
             $temp .= $folder."/";
             if(!is_dir($folder)) {
                 mkdir($folder);
