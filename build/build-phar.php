@@ -56,6 +56,11 @@ if(file_exists("build/run-phar.sh")){
     builderLog("[CLEANUP] Deleted an old runner");
 }
 
+if(!file_exists($path)){
+    mkdir($path);
+    builderLog("[BUILD] Created the builddirectory");
+}
+
 try {
     builderLog("[BUILD] Creating a new Phar object");
     $phar = new Phar($path."/".$filename."-".$version.".phar", 0, $path."/".$filename."-".$version.".phar");

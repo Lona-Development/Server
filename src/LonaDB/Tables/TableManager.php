@@ -26,14 +26,15 @@ class TableManager
         $this->lonaDB = $lonaDB;
         $this->tables = array();
 
-        $path = "data/tables/";
-        $temp = "";
-        foreach(explode("/", $path) as $dir) {
-            $temp = $temp . $dir . "/";
-            if (!is_dir($dir)) {
-                mkdir($dir);
+        $path = "./data/tables/";
+        $current = getcwd();
+        foreach(explode('/', $path) as $val) {
+            if(!is_dir($val)){
+                mkdir($val);
             }
+            chdir($val);
         }
+        chdir($current);
 
         $counter = 0;
         foreach (new DirectoryIterator('data/tables') as $fileInfo) {

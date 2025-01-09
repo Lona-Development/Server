@@ -26,14 +26,17 @@ class UserManager
     {
         $this->lonaDB = $lonaDB;
 
-        $path = "data/wal/system/";
-        $temp = "";
+        $path = "./data/wal/system/";
+        //create each folder if it doesn't exist
+        $current = getcwd();
         foreach(explode("/", $path) as $folder) {
-            $temp .= $folder."/";
             if(!is_dir($folder)) {
                 mkdir($folder);
             }
+            chdir($folder);
         }
+        chdir($current);
+
 
         //Create an empty Users.lona file if it doesn't exist
         file_put_contents("data/Users.lona", file_get_contents("data/Users.lona"));
@@ -314,7 +317,8 @@ class UserManager
     public function checkWriteAheadLog(): void
     {
         try {
-            if(!file_exists("./data/wal/system/Users.lona")) {
+            file_put_contents("./data/wal/system/Users.lona", file_get_contents("./data/wal/system/Users.lona"));
+            if(file_get_contents("./data/wal/system/Users.lona") == "") {
                 $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
                 file_put_contents("./data/wal/system/Users.lona", openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv).":".base64_encode($iv));
             }
