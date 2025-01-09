@@ -314,6 +314,11 @@ class UserManager
     public function checkWriteAheadLog(): void
     {
         try {
+            if(!file_exists("./data/wal/system/Users.lona")) {
+                $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+                file_put_contents("./data/wal/system/Users.lona", openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv).":".base64_encode($iv));
+            }
+
             $logFile = fopen("./data/wal/system/Users.lona", "r");
             if(!$logFile) {
                 //create the file with empty content
