@@ -48,7 +48,7 @@ class PluginManager
         // For all files and folders in "plugins/"
         $results = scandir("plugins/");
         foreach ($results as $result) {
-            if ($result != "." && $result != "..") {
+            if ($result != "." && $result != ".." && !str_starts_with($result, ".")) {
                 $this->lonaDB->getLogger()->info("Plugins found: ".$result);
             }
         }
@@ -101,7 +101,7 @@ class PluginManager
                 }
             } // Load plugin from folder => Plugin hasn't been compiled
             else {
-                if ($r != "." && $r !== "..") {
+                if ($r != "." && $r !== ".." && !str_starts_with($r, ".")) {
                     // Scan "plugins/$folder"
                     $debugScan = scandir("plugins/".$r);
                     $configFound = false;

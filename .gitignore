@@ -7,3 +7,5 @@ src/composer.phar
 log.txt
 configuration.lona
 /data/
+debug
+release

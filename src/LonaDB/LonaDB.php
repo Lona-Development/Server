@@ -7,6 +7,7 @@ define('AES_256_CBC', 'aes-256-cbc');
 require '../vendor/autoload.php';
 
 use Exception;
+use Phar;
 use LonaDB\Functions\FunctionManager;
 use LonaDB\Plugins\PluginManager;
 use LonaDB\Tables\TableManager;
@@ -90,6 +91,23 @@ class LonaDB
         } catch (Exception $e) {
             $this->logger->error($e);
         }
+    }
+
+    /**
+     * Returns the version of the LonaDB server.
+     *
+     * @return string The version of the LonaDB server.
+     */
+    public function getVersion(): string { return "5.0.1"; }
+
+    public function getBasePath(): string { 
+        $path = Phar::running(false);
+        if ($path === "") {
+            return __DIR__;
+        }
+        $parts = explode("/", $path);
+        array_pop($parts);
+        return implode("/", $parts);
     }
 
     /**
