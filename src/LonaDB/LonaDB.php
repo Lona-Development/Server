@@ -16,18 +16,17 @@ use LonaDB\Users\UserManager;
 class LonaDB
 {
     public array $config;
-    public bool $running = false;
-    public string $encryptionKey;
+    private string $encryptionKey;
 
     private Logger $logger;
-    public Server $server;
+    private Server $server;
     private TableManager $tableManager;
     private UserManager $userManager;
     private FunctionManager $functionManager;
     private PluginManager $pluginManager;
 
     /**
-     * Constructor for the LonaDB class.
+     * Constructor for the LonaDB main class.
      *
      * @param  string  $key  The encryption key used to decrypt the configuration file.
      */
@@ -47,23 +46,24 @@ class LonaDB
             file_put_contents("configuration.lona", file_get_contents("configuration.lona"));
             if (file_get_contents("configuration.lona") === "") {
                 $this->setup();
-            } else {
-                //Split the encrypted content from the IV
-                $parts = explode(':', file_get_contents("./configuration.lona"));
-                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->encryptionKey, 0, base64_decode($parts[1]));
+            }
+        
+            //Decrypt the configuration file
+            $decrypted = LonaDB::decrypt(file_get_contents("configuration.lona"), $this->encryptionKey);
 
-                //If the given EncryptionKey didn't work, throw an error and exit
-                if (!json_decode($decrypted, true)) {
-                    echo "Encryption Key does not match the existing Configuration file. Exiting.\n";
-                } else {
-                    $run = true;
-                }
+            //Check if being run as a Phar
+            if (Phar::running(false) !== "") {
+                $run = true;
             }
 
             if ($run) {
                 $this->logger->infoCache("Loading config.");
-                $parts = explode(':', file_get_contents("./configuration.lona"));
-                $decrypted = openssl_decrypt($parts[0], AES_256_CBC, $this->encryptionKey, 0, base64_decode($parts[1]));
+                
+                if(!$decrypted) {
+                    echo "Encryption key does not match the existing configuration file. Exiting.\n";
+                    exit();
+                }
+
                 $this->config = json_decode($decrypted, true);
 
                 $this->logger->InfoCache("Checking config.");
@@ -76,17 +76,18 @@ class LonaDB
 
                 $this->logger->info("Loading UserManager class...");
                 $this->userManager = new UserManager($this);
+
                 $this->logger->info("Loading TableManager class...");
                 $this->tableManager = new TableManager($this);
+
                 $this->logger->info("Loading FunctionManager class...");
                 $this->functionManager = new FunctionManager($this);
+
                 $this->logger->info("Loading PluginManager class...");
                 $this->pluginManager = new PluginManager($this);
 
-                if (!$this->running) {
-                    $this->logger->info("Loading Server class...");
-                    $this->server = new Server($this);
-                }
+                $this->logger->info("Loading Server class...");
+                $this->server = new Server($this);
             }
         } catch (Exception $e) {
             $this->logger->error($e);
@@ -100,6 +101,11 @@ class LonaDB
      */
     public function getVersion(): string { return "5.0.1"; }
 
+    /**
+     * Returns the base path of the LonaDB server.
+     *
+     * @return string The base path of the LonaDB server.
+     */
     public function getBasePath(): string { 
         $path = Phar::running(false);
         if ($path === "") {
@@ -108,16 +114,6 @@ class LonaDB
         $parts = explode("/", $path);
         array_pop($parts);
         return implode("/", $parts);
-    }
-
-    /**
-     * Tells the PluginManager to load all plugins.
-     */
-    public function loadPlugins(): void
-    {
-        if (!$this->pluginManager->loaded) {
-            $this->pluginManager->loadPlugins();
-        }
     }
 
     /**
@@ -166,7 +162,7 @@ class LonaDB
      * @param  string  $title  The prompt message to display.
      * @return false|string The input read from the standard input, or false on failure.
      */
-    public function readInput(string $title): false|string
+    private function readInput(string $title): false|string
     {
         echo "$title:\n";
         $inputHandle = fopen("php://stdin", "r");
@@ -228,6 +224,32 @@ class LonaDB
     public function getLogger(): Logger
     {
         return $this->logger;
+    }
+
+    /**
+     * Encrypts the given data using the given key.
+     *
+     * @param  string  $data The data to encrypt.
+     * @param  string  $key  The encryption key to use.
+     * @return String
+     */
+    public static function encrypt(string $data, string $key): string
+    {
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+        return openssl_encrypt($data, AES_256_CBC, $key, 0, $iv).":".base64_encode($iv);
+    }
+
+    /**
+     * Decrypts the given data using the given key.
+     *
+     * @param  string  $data The data to decrypt.
+     * @param  string  $key  The encryption key to use.
+     * @return String
+     */
+    public static function decrypt(string $data, string $key): string
+    {
+        $parts = explode(':', $data);
+        return openssl_decrypt($parts[0], AES_256_CBC, $key, 0, base64_decode($parts[1]));
     }
 }
 

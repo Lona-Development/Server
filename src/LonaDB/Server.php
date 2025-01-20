@@ -16,7 +16,6 @@ class Server
     private int $port;
 
     private $socket;
-    private bool $socketRunning;
 
     private LonaDB $lonaDB;
 
@@ -28,13 +27,6 @@ class Server
     public function __construct(LonaDB $lonaDB)
     {
         $this->lonaDB = $lonaDB;
-
-        if ($this->lonaDB->running) {
-            return;
-        }
-
-        $this->lonaDB->running = true;
-        $this->socketRunning = false;
         $this->config = $lonaDB->config;
 
         $this->address = $this->config["address"];
@@ -66,10 +58,6 @@ class Server
      */
     public function startSocket(): void
     {
-        if ($this->socketRunning) {
-            return;
-        }
-
         $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 1);
         socket_set_option($this->socket, SOL_SOCKET, SO_REUSEPORT, 1);
@@ -90,7 +78,7 @@ class Server
         }
 
         $this->lonaDB->getLogger()->info("PluginManager: Starting to load plugins...");
-        $this->lonaDB->loadPlugins();
+        $this->lonaDB->getPluginManager()->loadPlugins();
 
         $this->lonaDB->getLogger()->start("Server running on port ".$this->port);
         $this->socketRunning = true;
@@ -125,20 +113,34 @@ class Server
     /**
      * Handles data received from a client.
      *
+     * This function will be rewritten entirely. 
+     * No need to refactor it now.
+     *
      * @param  string  $dataString  The data received from the client.
      * @param  mixed  $client  The client socket.
      */
     private function handleData(string $dataString, mixed $client): void
     {
+        //run in child process
+        $pid = pcntl_fork();
+        if ($pid == -1) {
+            $this->lonaDB->getLogger()->error("Failed to fork process: ".socket_strerror(socket_last_error()));
+            return;
+        } elseif ($pid) {
+            return;
+        }
         try {
+            var_dump($dataString);
             $data = json_decode($dataString, true);
 
             if (!is_array($data) || !array_key_exists('action', $data)) {
+                $this->lonaDB->getLogger()->error("Invalid data received from client: ".$dataString);
                 return;
             }
 
             if (!$data['process']) {
                 $response = json_encode(["success" => false, "err" => ErrorCode::BAD_PROCESS_ID, "process" => $data['process']]);
+                $this->lonaDB->getLogger()->error("Invalid process ID received from client: ".$dataString);
                 socket_write($client, $response);
                 return;
             }
@@ -152,12 +154,14 @@ class Server
 
             if (!$login) {
                 $response = json_encode(["success" => false, "err" => ErrorCode::LOGIN_ERROR, "process" => $data['process']]);
+                $this->lonaDB->getLogger()->error("Invalid login credentials received from client: ".$dataString);
                 socket_write($client, $response);
                 return;
             }
 
             if (!$this->actions[$data['action']]) {
                 $response = json_encode(["success" => false, "err" => ErrorCode::ACTION_NOT_FOUND]);
+                $this->lonaDB->getLogger()->error("Invalid action received from client: ".$dataString);
                 socket_write($client, $response);
                 return;
             }

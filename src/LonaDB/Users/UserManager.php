@@ -2,9 +2,6 @@
 
 namespace LonaDB\Users;
 
-//Encryption/decryption
-define('AES_256_CBC', 'aes-256-cbc');
-
 require '../../vendor/autoload.php';
 
 use LonaDB\Enums\Permission;
@@ -42,8 +39,6 @@ class UserManager
         file_put_contents("data/Users.lona", file_get_contents("data/Users.lona"));
         //Check if the Users.lona file didn't exist before
         if (file_get_contents("data/Users.lona") === "") {
-            //Create an IV for encryption
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
             //Create an empty Array
             $save = [
                 "users" => [],
@@ -51,20 +46,17 @@ class UserManager
             ];
 
             //Convert and decrypt the array
-            $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
-                $iv);
+            $encrypted = LonaDB::encrypt(json_encode($save), $this->lonaDB->config["encryptionKey"]);
             //Save the array
             file_put_contents("./data/Users.lona", $encrypted.":".base64_encode($iv));
         }
 
-        //Split the decrypted Users.lona from the IV
-        $parts = explode(':', file_get_contents("./data/Users.lona"));
-        //Load the Users
-        $temp = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
-            base64_decode($parts[1])), true);
-        
+        //Decrypt the Users.lona file
+        $temp = json_decode(LonaDB::decrypt(file_get_contents("./data/Users.lona"), $this->lonaDB->config["encryptionKey"]), true);
+
         $this->users = $temp["users"];
         $this->logLevel = $temp["logLevel"];
+        unset($temp);
 
         $this->checkWriteAheadLog();
     }
@@ -318,26 +310,15 @@ class UserManager
     {
         try {
             file_put_contents("./data/wal/system/Users.lona", file_get_contents("./data/wal/system/Users.lona"));
-            if(file_get_contents("./data/wal/system/Users.lona") == "") {
-                $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-                file_put_contents("./data/wal/system/Users.lona", openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv).":".base64_encode($iv));
-            }
+            if(file_get_contents("./data/wal/system/Users.lona") == "")
+                file_put_contents("./data/wal/system/Users.lona", LonaDB::encrypt(json_encode([]), $this->lonaDB->config["encryptionKey"]));
 
             $logFile = fopen("./data/wal/system/Users.lona", "r");
-            if(!$logFile) {
-                //create the file with empty content
-                $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-                file_put_contents("./data/wal/system/Users.lona", openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv).":".base64_encode($iv));
-                $logFile = fopen("./data/wal/system/Users.lona", "r");
-            }
 
-            if(!flock($logFile, LOCK_EX)) {
+            if(!flock($logFile, LOCK_EX)) 
                 throw new \Exception("Could not lock write-ahead log file for users table");
-            }
 
-            $parts = explode(':', file_get_contents("./data/wal/system/Users.lona"));
-            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
-                base64_decode($parts[1])), true);
+            $log = json_decode(LonaDB::decrypt(file_get_contents("./data/wal/system/Users.lona"), $this->lonaDB->config["encryptionKey"]), true);
 
             if($this->logLevel == 0 && $log == []) {
                 flock($logFile, LOCK_UN);
@@ -404,9 +385,7 @@ class UserManager
         try {
             $this->logLevel++;
 
-            $parts = explode(':', file_get_contents("./data/wal/system/Users.lona"));
-            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
-
+            $log = json_decode(LonaDB::decrypt(file_get_contents("./data/wal/system/Users.lona"), $this->lonaDB->config["encryptionKey"]), true);
 
             $log[$this->logLevel] = [
                 "action" => $action,
@@ -424,12 +403,10 @@ class UserManager
                 throw new \Exception("Could not lock write-ahead log file for users table");
             }
             
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-            $encrypted = openssl_encrypt(json_encode($log), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
+            $encrypted = LonaDB::encrypt(json_encode($log), $this->lonaDB->config["encryptionKey"]);
 
-            if(!fwrite($logFile, $encrypted.":".base64_encode($iv))) {
+            if(!fwrite($logFile, $encrypted))
                 throw new \Exception("Could not write to write-ahead log file for users table");
-            }
 
             flock($logFile, LOCK_UN);
             fclose($logFile);
@@ -443,15 +420,12 @@ class UserManager
      */
     public function save(): void
     {
-        //Generate IV
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-        //Encrypt Users array
-        $encrypted = openssl_encrypt(json_encode(array(
+        $encrypted = LonaDB::encrypt(json_encode(array(
             "users" => $this->users,
             "logLevel" => $this->logLevel
-        )), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
-            $iv);
-        //Save the encrypted data + the IV to Users.lona
+        )), $this->lonaDB->config["encryptionKey"]);
+
+        //Save the encrypted data Users.lona
         $file = fopen("./data/Users.lona", "w");
         if(!$file) {
             $this->lonaDB->getLogger()->error("Could not open Users.lona file for writing");
@@ -463,7 +437,7 @@ class UserManager
             return;
         }
 
-        if(!fwrite($file, $encrypted.":".base64_encode($iv))) {
+        if(!fwrite($file, $encrypted)) {
             $this->lonaDB->getLogger()->error("Could not write to Users.lona file");
             return;
         }
