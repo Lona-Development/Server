@@ -25,7 +25,7 @@ class LonaFunction{
 
         $this->lonaDB->getLogger()->load("Loading function '".$name."'");
 
-        $temp = json_decode(LonaDB::decrypt($temp, $this->lonaDB->config["encryptionKey"]), true);
+        $temp = json_decode(LonaDB::decrypt(file_get_contents("./data/functions/".$name), $this->lonaDB->config["encryptionKey"]), true);
 
         $this->file = substr($name, 0, -5);
         $this->name = $this->file;

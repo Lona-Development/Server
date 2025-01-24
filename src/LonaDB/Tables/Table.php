@@ -34,7 +34,7 @@ class Table
         if (!$create) {
             $this->lonaDB->getLogger()->load("Trying to load table '".$name."'");
 
-            $temp = json_decode(LonaDB::decrypt($parts[0], $this->lonaDB->config["encryptionKey"]), true);
+            $temp = json_decode(LonaDB::decrypt(file_get_contents("./data/tables/".$name), $this->lonaDB->config["encryptionKey"]), true);
 
             $this->file = substr($name, 0, -5);
             $this->data = $temp["data"];
@@ -323,7 +323,7 @@ class Table
                 throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
             }
 
-            $log = json_decode(LonaDB::decrypt($parts[0], $this->lonaDB->config["encryptionKey"]), true);
+            $log = json_decode(LonaDB::decrypt(file_get_contents("./data/wal/".$this->file.".lona"), $this->lonaDB->config["encryptionKey"]), true);
 
             if($this->logLevel == 0 && $log == []) {
                 flock($logFile, LOCK_UN);
@@ -390,7 +390,7 @@ class Table
         try {
             $this->logLevel++;
 
-            $log = json_decode(LonaDB::decrypt($parts[0], $this->lonaDB->config["encryptionKey"]), true);
+            $log = json_decode(LonaDB::decrypt(file_get_contents("./data/wal/".$this->file.".lona"), $this->lonaDB->config["encryptionKey"]), true);
 
             $log[$this->logLevel] = [time(), $action, $name, $value, $user];
 
