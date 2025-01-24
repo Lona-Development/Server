@@ -48,7 +48,7 @@ class UserManager
             //Convert and decrypt the array
             $encrypted = LonaDB::encrypt(json_encode($save), $this->lonaDB->config["encryptionKey"]);
             //Save the array
-            file_put_contents("./data/Users.lona", $encrypted.":".base64_encode($iv));
+            file_put_contents("./data/Users.lona", $encrypted);
         }
 
         //Decrypt the Users.lona file
@@ -56,7 +56,6 @@ class UserManager
 
         $this->users = $temp["users"];
         $this->logLevel = $temp["logLevel"];
-        unset($temp);
 
         $this->checkWriteAheadLog();
     }

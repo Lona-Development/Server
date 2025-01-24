@@ -25,10 +25,7 @@ class LonaFunction{
 
         $this->lonaDB->getLogger()->load("Loading function '".$name."'");
 
-        // Split encrypted function from IV
-        $parts = explode(':', file_get_contents("./data/functions/".$name));
-        // Decrypt function
-        $temp = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
+        $temp = json_decode(LonaDB::decrypt($temp, $this->lonaDB->config["encryptionKey"]), true);
 
         $this->file = substr($name, 0, -5);
         $this->name = $this->file;

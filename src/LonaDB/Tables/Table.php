@@ -33,9 +33,9 @@ class Table
         $this->lonaDB = $lonaDB;
         if (!$create) {
             $this->lonaDB->getLogger()->load("Trying to load table '".$name."'");
-            $parts = explode(':', file_get_contents("./data/tables/".$name));
-            $temp = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
-                base64_decode($parts[1])), true);
+
+            $temp = json_decode(LonaDB::decrypt($parts[0], $this->lonaDB->config["encryptionKey"]), true);
+
             $this->file = substr($name, 0, -5);
             $this->data = $temp["data"];
             $this->permissions = $temp["permissions"];
@@ -56,8 +56,7 @@ class Table
                     throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
                 }
 
-                $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-                if (fwrite($logFile, openssl_encrypt(json_encode([]), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($iv))) === false) {
+                if (fwrite($logFile, LonaDB::encrypt(json_encode([]), $this->lonaDB->config["encryptionKey"])) === false) {
                     flock($logFile, LOCK_UN);
                     fclose($logFile);
                     throw new \Exception("Failed to write to the write-ahead log file for table '".$this->file."'.");
@@ -68,6 +67,7 @@ class Table
 
                 $this->lonaDB->getLogger()->table("Created missing write-ahead log file for table '".$this->file."'");
             }
+
             $this->checkWriteAheadLog();
         } else {
             $this->lonaDB->getLogger()->table("Trying to generate table '".$name."'");
@@ -323,8 +323,7 @@ class Table
                 throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
             }
 
-            $parts = explode(':', file_get_contents("./data/wal/".$this->file.".lona"));
-            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
+            $log = json_decode(LonaDB::decrypt($parts[0], $this->lonaDB->config["encryptionKey"]), true);
 
             if($this->logLevel == 0 && $log == []) {
                 flock($logFile, LOCK_UN);
@@ -391,8 +390,7 @@ class Table
         try {
             $this->logLevel++;
 
-            $parts = explode(':', file_get_contents("./data/wal/".$this->file.".lona"));
-            $log = json_decode(openssl_decrypt($parts[0], AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, base64_decode($parts[1])), true);
+            $log = json_decode(LonaDB::decrypt($parts[0], $this->lonaDB->config["encryptionKey"]), true);
 
             $log[$this->logLevel] = [time(), $action, $name, $value, $user];
 
@@ -407,10 +405,9 @@ class Table
                 throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
             }
 
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-            $encrypted = openssl_encrypt(json_encode($log), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
+            $encrypted = LonaDB::encrypt(json_encode($log), $this->lonaDB->config["encryptionKey"]);
 
-            if (fwrite($logFile, $encrypted.":".base64_encode($iv)) === false) {
+            if (fwrite($logFile, $encrypted) === false) {
                 flock($logFile, LOCK_UN);
                 fclose($logFile);
                 throw new \Exception("Failed to write to the write-ahead log file for table '".$this->file."'.");
@@ -428,9 +425,7 @@ class Table
      */
     private function save(): void
     {
-        try {
-            $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-            
+        try {            
             $save = [
                 "data" => $this->data,
                 "permissions" => $this->permissions,
@@ -438,8 +433,8 @@ class Table
                 "logLevel" => $this->logLevel
             ];
             
-            $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0, $iv);
-            
+            $encrypted =  LonaDB::encrypt(json_encode($save), $this->lonaDB->config["encryptionKey"]);
+     
             $filePath = "./data/tables/".$this->file.".lona";
             
             $file = fopen($filePath, 'w');
@@ -452,7 +447,7 @@ class Table
                 throw new \Exception("Failed to acquire lock on the temporary table file.");
             }
             
-            if (fwrite($file, $encrypted.":".base64_encode($iv)) === false) {
+            if (fwrite($file, $encrypted) === false) {
                 fclose($file);
                 throw new \Exception("Failed to write to the temporary table file.");
             }

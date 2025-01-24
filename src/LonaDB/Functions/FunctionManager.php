@@ -68,13 +68,9 @@ class FunctionManager
         if ($this->functions[$name]) {
             return false;
         }
-        //Generate IV
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
-        //Encrypt a function script
-        $encrypted = openssl_encrypt(json_encode($content), AES_256_CBC, $this->lonaDB->config["encryptionKey"], 0,
-            $iv);
         //Save
-        file_put_contents("./data/functions/".$name.".lona", $encrypted.":".base64_encode($iv));
+        $encrypted = LonaDB::encrypt($content, $this->lonaDB->getEncryptionKey());
+        file_put_contents("./data/functions/".$name.".lona", $encrypted);
         //Initialize function instance
         $this->functions[$name] = new LonaFunction($this->lonaDB, $name.".lona");
         return true;
