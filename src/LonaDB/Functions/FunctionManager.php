@@ -2,18 +2,15 @@
 
 namespace LonaDB\Functions;
 
-//Encryption/decryption
-define('AES_256_CBC', 'aes-256-cbc');
-
-require 'vendor/autoload.php';
-
 use DirectoryIterator;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class FunctionManager
+class FunctionManager extends ThreadSafe
 {
     private LonaDB $lonaDB;
-    private array $functions;
+    private ThreadSafeArray $functions;
 
     /**
      * Constructor for the FunctionManager class.
@@ -23,7 +20,7 @@ class FunctionManager
     public function __construct(LonaDB $lonaDB)
     {
         $this->lonaDB = $lonaDB;
-        $this->functions = array();
+        $this->functions = new ThreadSafeArray();
 
         //Check if the directory "data/functions/" exists, create if it doesn't
         if (!is_dir("data/")) {

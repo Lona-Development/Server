@@ -2,15 +2,16 @@
 
 namespace LonaDB;
 
-require 'vendor/autoload.php';
-
 use Exception;
 use LonaDB\Enums\ErrorCode;
+use pmmp\thread\Thread;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class Server
+class Server extends Thread
 {
-    private array $config;
-    private array $actions = [];
+    private ThreadSafeArray $config;
+    private ThreadSafeArray $actions;
 
     private string $address;
     private int $port;
@@ -32,6 +33,15 @@ class Server
         $this->address = $this->config["address"];
         $this->port = $this->config["port"];
 
+        $this->actions = new ThreadSafeArray();
+    }
+
+    /**
+     * Starts the server thread.
+     */
+    public function run(): void
+    {
+        require_once __DIR__."/../vendor/autoload.php";
         $this->loadActions();
         $this->startSocket();
     }

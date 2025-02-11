@@ -1,1 +1,1 @@
-cd build/debug ; php -dphar.readonly=0 LonaDB-5.0.1-debug.phar
+cd build/debug ; ~/bin/bin/php7/bin/php LonaDB-5.0.1-debug.phar

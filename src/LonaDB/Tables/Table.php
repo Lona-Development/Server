@@ -2,19 +2,20 @@
 
 namespace LonaDB\Tables;
 
-//Encryption/decryption
-define('AES_256_CBC', 'aes-256-cbc');
+require __DIR__ . "/../../vendor/autoload.php";
 
 use LonaDB\Enums\Permission;
 use LonaDB\Enums\Role;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class Table
+class Table extends ThreadSafe
 {
     private string $file;
-    private array $data;
+    private ThreadSafeArray $data;
     private int $logLevel;
-    private array $permissions;
+    private ThreadSafeArray $permissions;
     private string $owner;
     public string $name;
 
@@ -37,8 +38,8 @@ class Table
             $temp = json_decode(LonaDB::decrypt(file_get_contents("./data/tables/".$name), $this->lonaDB->config["encryptionKey"]), true);
 
             $this->file = substr($name, 0, -5);
-            $this->data = $temp["data"];
-            $this->permissions = $temp["permissions"];
+            $this->data = ThreadSafeArray::fromArray($temp["data"]);
+            $this->permissions = ThreadSafeArray::fromArray($temp["permissions"]);
             $this->owner = $temp["owner"];
 
             if(isset($temp["logLevel"]))
@@ -72,8 +73,8 @@ class Table
         } else {
             $this->lonaDB->getLogger()->table("Trying to generate table '".$name."'");
             $this->file = $name;
-            $this->data = array();
-            $this->permissions = array();
+            $this->data = new ThreadSafeArray();
+            $this->permissions = new ThreadSafeArray();
             $this->owner = $owner;
             $this->logLevel = 0;
             $this->save();
@@ -133,7 +134,7 @@ class Table
      */
     public function set(string $name, mixed $value, string $user): bool
     {
-        if (!$this->checkPermission($user, Permission::WRITE)) {
+        if (!$this->checkPermission($user, LonaDB::Permission::WRITE)) {
             return false;
         }
 

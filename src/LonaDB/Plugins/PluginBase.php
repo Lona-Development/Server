@@ -4,12 +4,17 @@ namespace LonaDB\Plugins;
 
 require '../../vendor/autoload.php';
 
+use Phar;
 use LonaDB\LonaDB;
 use LonaDB\Logger;
+use pmmp\thread\Thread;
+use pmmp\thread\ThreadSafeArray;
 
-class PluginBase
+class PluginBase extends Thread
 {
     private LonaDB $lonaDB;
+    private string $phar;
+    private string $main;
     private string $name;
     private string $version;
 
@@ -20,16 +25,39 @@ class PluginBase
      * @param string $name The name of the plugin.
      * @param string $version The version of the plugin.
      */
-    public function __construct(LonaDB $lonaDB, string $name, string $version)
+    public function __construct(LonaDB $lonaDB, string $phar, string $main, string $name, string $version)
     {
         $this->lonaDB = $lonaDB;
         $this->name = $name;
+        $this->phar = $phar;
+        $this->main = $main;
         $this->version = $version;
-
-        $this->getLogger()->load("Loading Plugin '".$this->name."'");
     }
 
     /**
+     * Load all classes from a PHAR file
+     * @param Phar $phar The PHAR file
+     * @param string $path The path to load classes from
+     */
+    private function loadClasses(Phar $phar, string $path = ""): void {
+        if(!str_starts_with($path, "/")) $path = "/" . $path;
+        else if($path === "") $path = "/";
+
+        $content = scandir($phar->offsetGet("plugin.json")->getPath() . $path);
+        foreach ($content as $file) {
+            if ($file === "." || $file === "..") continue;
+            if (is_dir($phar->offsetGet("plugin.json")->getPath() . $path . $file)) {
+                $this->loadClasses($phar, $path . $file . "/");
+            } else {
+                if(str_ends_with($file, ".php")){
+                    if($file !== $this->main . ".php") 
+                        require($phar->offsetGet("plugin.json")->getPath() . $path . $file);
+                }
+            }
+        }
+    }
+
+   /**
      * Gets the LonaDB instance.
      *
      * @return LonaDB The LonaDB instance.
@@ -50,6 +78,16 @@ class PluginBase
     }
 
     /**
+     * Gets the Phar instance.
+     *
+     * @return Phar The plugin's Phar instance.
+     */
+    final public function getPhar(): Phar
+    {
+        return new Phar($this->phar);
+    }
+
+    /**
      * Gets the name of the plugin.
      *
      * @return string The name of the plugin.
@@ -67,6 +105,16 @@ class PluginBase
     final public function getVersion(): string
     {
         return $this->version;
+    }
+
+    /**
+     * Runs the plugin as a thread.
+     */
+    final public function run(): void
+    {
+        require __DIR__ . '/../../vendor/autoload.php';
+        $this->loadClasses($this->getPhar());
+        $this->onEnable();
     }
 
     /**

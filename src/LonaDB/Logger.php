@@ -2,11 +2,10 @@
 
 namespace LonaDB;
 
-require '../vendor/autoload.php';
+use pmmp\thread\ThreadSafe;
 
-class Logger
+class Logger extends ThreadSafe
 {
-
     private $logFile;
     private string $infoCache = "";
     private bool $start = false;

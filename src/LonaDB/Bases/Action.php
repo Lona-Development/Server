@@ -1,10 +1,11 @@
 <?php
 
-namespace LonaDB\Traits;
+namespace LonaDB\Bases;
 
 use LonaDB\Enums\ErrorCode;
+use pmmp\thread\ThreadSafe;
 
-trait ActionTrait
+class Action extends ThreadSafe
 {
     /**
      * Sends a response to the client and closes the socket.
@@ -13,14 +14,14 @@ trait ActionTrait
      * @param  array  $responseArray  The response data to send.
      * @return bool Returns true if the response indicates success, false otherwise.
      */
-    function sendSuccess(mixed $client, $process, array $responseArray): bool
+    final public function sendSuccess(mixed $client, $process, array $responseArray): bool
     {
         $response = array_merge($responseArray, ['success' => true, 'process' => $process]);
         $this->send($client, $response);
         return true;
     }
 
-    function sendError(mixed $client, ErrorCode $errorCode, mixed $process): bool
+    final public function sendError(mixed $client, ErrorCode $errorCode, mixed $process): bool
     {
         $response = ["err" => $errorCode, 'success' => false, "process" => $process];
         $this->send($client, $response);

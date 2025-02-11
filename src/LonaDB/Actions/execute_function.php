@@ -1,17 +1,14 @@
 <?php
 
 use LonaDB\Enums\Event;
-use LonaDB\Interfaces\ActionInterface;
+use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
-use LonaDB\Traits\ActionTrait;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
  * It defines the `run` method to handle the execution of functions in LonaDB.
  */
-return new class implements ActionInterface {
-
-    use ActionTrait;
+return new class extends Action {
 
     /**
      * Runs the action to execute a function in LonaDB.

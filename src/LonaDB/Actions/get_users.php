@@ -1,18 +1,15 @@
 <?php
 
 use LonaDB\Enums\ErrorCode;
-use LonaDB\Interfaces\ActionInterface;
-use LonaDB\LonaDB;
 use LonaDB\Enums\Permission;
-use LonaDB\Traits\ActionTrait;
+use LonaDB\Bases\Action;
+use LonaDB\LonaDB;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
  * It defines the `run` method to handle the retrieval of users in LonaDB.
  */
-return new class implements ActionInterface {
-
-    use ActionTrait;
+return new class extends Action {
 
     /**
      * Runs the action to get users in LonaDB.

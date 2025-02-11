@@ -2,17 +2,14 @@
 
 use LonaDB\Enums\ErrorCode;
 use LonaDB\Enums\Role;
-use LonaDB\Interfaces\ActionInterface;
+use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
-use LonaDB\Traits\ActionTrait;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
  * It defines the `run` method to handle the retrieval of raw permissions in LonaDB.
  */
-return new class implements ActionInterface {
-
-    use ActionTrait;
+return new class extends Action {
 
     /**
      * Runs the action to get raw permissions in LonaDB.

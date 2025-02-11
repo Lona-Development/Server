@@ -8,13 +8,14 @@ use DirectoryIterator;
 use LonaDB\Enums\Permission;
 use LonaDB\Enums\Role;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class TableManager
+class TableManager extends ThreadSafe
 {
 
     private LonaDB $lonaDB;
-    /* @var Table[] $tables */
-    private array $tables;
+    private ThreadSafeArray $tables;
 
     /**
      * Constructor for the TableManager class.
@@ -24,7 +25,7 @@ class TableManager
     public function __construct(LonaDB $lonaDB)
     {
         $this->lonaDB = $lonaDB;
-        $this->tables = array();
+        $this->tables = new ThreadSafeArray();
 
         $path = "./data/tables/";
         $current = getcwd();

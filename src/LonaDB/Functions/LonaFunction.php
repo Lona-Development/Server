@@ -2,15 +2,15 @@
 
 namespace LonaDB\Functions;
 
-//Encryption/decryption
-define('AES_256_CBC', 'aes-256-cbc');
-
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class LonaFunction{
+class LonaFunction extends ThreadSafe
+{
     private string $file;
     public string $name;
-    private array $functions;
+    private ThreadSafeArray $functions;
 
     private LonaDB $lonaDB;
 
@@ -22,6 +22,7 @@ class LonaFunction{
      */
     public function __construct(LonaDB $lonaDB, string $name){
         $this->lonaDB = $lonaDB;
+        $this->functions = new ThreadSafeArray();
 
         $this->lonaDB->getLogger()->load("Loading function '".$name."'");
 

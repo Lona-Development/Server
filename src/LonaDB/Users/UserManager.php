@@ -7,10 +7,12 @@ require '../../vendor/autoload.php';
 use LonaDB\Enums\Permission;
 use LonaDB\Enums\Role;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class UserManager
+class UserManager extends ThreadSafe
 {
-    private array $users = [];
+    private ThreadSafeArray $user;
     private int $logLevel;
     private LonaDB $lonaDB;
 
@@ -34,7 +36,6 @@ class UserManager
         }
         chdir($current);
 
-
         //Create an empty Users.lona file if it doesn't exist
         file_put_contents("data/Users.lona", file_get_contents("data/Users.lona"));
         //Check if the Users.lona file didn't exist before
@@ -54,10 +55,10 @@ class UserManager
         //Decrypt the Users.lona file
         $temp = json_decode(LonaDB::decrypt(file_get_contents("./data/Users.lona"), $this->lonaDB->config["encryptionKey"]), true);
 
-        $this->users = $temp["users"];
+        $this->users = ThreadSafeArray::fromArray($temp["users"]);
         $this->logLevel = $temp["logLevel"];
 
-        $this->checkWriteAheadLog();
+        $this->checkWriteAheadLog();    
     }
 
     /**

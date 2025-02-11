@@ -12,10 +12,13 @@ use LonaDB\Functions\FunctionManager;
 use LonaDB\Plugins\PluginManager;
 use LonaDB\Tables\TableManager;
 use LonaDB\Users\UserManager;
+use pmmp\thread\Thread;
+use pmmp\thread\ThreadSafe;
+use pmmp\thread\ThreadSafeArray;
 
-class LonaDB
+class LonaDB extends ThreadSafe
 {
-    public array $config;
+    public ThreadSafeArray $config;
     private string $encryptionKey;
 
     private Logger $logger;
@@ -64,8 +67,8 @@ class LonaDB
                     exit();
                 }
 
-                $this->config = json_decode($decrypted, true);
-
+                $this->config = ThreadSafeArray::fromArray(json_decode($decrypted, true));
+                
                 $this->logger->InfoCache("Checking config.");
                 if (!$this->config["port"] || !$this->config["address"] || !$this->config["encryptionKey"] || !$this->config["root"]) {
                     $this->setup();
@@ -88,6 +91,7 @@ class LonaDB
 
                 $this->logger->info("Loading Server class...");
                 $this->server = new Server($this);
+                $this->server->start(Thread::INHERIT_NONE);
             }
         } catch (Exception $e) {
             $this->logger->error($e);
@@ -235,7 +239,7 @@ class LonaDB
      */
     public static function encrypt(string $data, string $key): string
     {
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+        $iv = openssl_random_pseudo_bytes(\openssl_cipher_iv_length(AES_256_CBC));
         return openssl_encrypt($data, AES_256_CBC, $key, 0, $iv).":".base64_encode($iv);
     }
 

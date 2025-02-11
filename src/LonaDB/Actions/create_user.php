@@ -3,15 +3,13 @@
 use LonaDB\Enums\ErrorCode;
 use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
-use LonaDB\Interfaces\ActionInterface;
+use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
-use LonaDB\Traits\ActionTrait;
 
 /**
  * Handles the creation of users in LonaDB by implementing the ActionInterface.
  */
-return new class implements ActionInterface {
-    use ActionTrait;
+return new class extends Action {
 
     /**
      * Executes the action to create a user in LonaDB.
