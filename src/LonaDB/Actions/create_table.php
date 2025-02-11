@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -43,7 +44,7 @@ return new class extends Action {
             return $this->sendError($client,  ErrorCode::TABLE_EXISTS, $processId);
         }
 
-        $lonaDB->getPluginManager()->runEvent($loginName, Event::TABLE_CREATE, ['name' => $tableName]);
+        $lonaDB->getPluginManager()->runEvent($loginName, Event::TABLE_CREATE->value, ThreadSafeArray::fromArray(['name' => $tableName]));
 
         return $this->sendSuccess($client, $data['process'], []);
     }

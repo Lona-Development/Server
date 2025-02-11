@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -32,8 +33,8 @@ return new class extends Action {
             $userManager->addPermission($permissionUser, Permission::findPermission($data['permission']['name']));
         }
 
-        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_ADD,
-            ["user" => $permissionUser, "name" => $data['permission']['name']]);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_ADD->value,
+            ThreadSafeArray::fromArray(["user" => $permissionUser, "name" => $data['permission']['name']]));
 
         return $this->sendSuccess($client, $data['process'], []);
     }

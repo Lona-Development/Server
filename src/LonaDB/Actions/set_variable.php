@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -39,11 +40,11 @@ return new class extends Action {
         $variableName = $data['variable']['name'];
         $variableValue = $data['variable']['value'];
         $table->set($variableName, $variableValue, $username);
-        $lonaDB->getPluginManager()->runEvent($username, Event::VALUE_SET, [
+        $lonaDB->getPluginManager()->runEvent($username, Event::VALUE_SET->value, ThreadSafeArray::fromArray([
             "table" => $tableName,
             "name" => $variableName,
             "value" => $variableValue
-        ]);
+        ]));
         return $this->sendSuccess($client, $process, []);
     }
 };

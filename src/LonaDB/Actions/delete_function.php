@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -28,8 +29,8 @@ return new class extends Action {
 
         $lonaDB->getFunctionManager()->delete($data['function']['name']);
 
-        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_DELETE,
-            ["name" => $data['function']['name']]);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_DELETE->value,
+            ThreadSafeArray::fromArray(["name" => $data['function']['name']]));
 
         return $this->sendSuccess($client, $data['process'], []);
     }

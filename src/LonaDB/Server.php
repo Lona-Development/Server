@@ -41,6 +41,7 @@ class Server extends Thread
      */
     public function run(): void
     {
+        error_reporting(E_ERROR | E_PARSE);
         require_once __DIR__."/../vendor/autoload.php";
         $this->loadActions();
         $this->startSocket();
@@ -131,14 +132,6 @@ class Server extends Thread
      */
     private function handleData(string $dataString, mixed $client): void
     {
-        //run in child process
-        $pid = pcntl_fork();
-        if ($pid == -1) {
-            $this->lonaDB->getLogger()->error("Failed to fork process: ".socket_strerror(socket_last_error()));
-            return;
-        } elseif ($pid) {
-            return;
-        }
         try {
             var_dump($dataString);
             $data = json_decode($dataString, true);
@@ -175,6 +168,8 @@ class Server extends Thread
                 socket_write($client, $response);
                 return;
             }
+
+            var_dump($this->actions[$data['action']]);
 
             $this->actions[$data['action']]->run($this->lonaDB, $data, $client);
         } catch (Mixed $e) {

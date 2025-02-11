@@ -72,8 +72,10 @@ class UserManager extends ThreadSafe
     {
         if ($name === "root" && $password === $this->lonaDB->config["root"]) {
             return true;
-        } elseif (!$this->checkUser($name) || $this->users[$name]["password"] !== $password) {
+        } elseif (!$this->checkUser($name)) {
             return false;
+        } elseif ($this->users[$name]['password'] !== $password) {
+            return true;
         }
         return true;
     }
@@ -127,13 +129,13 @@ class UserManager extends ThreadSafe
 
         //Add a user to the user's array
         $this->writeAheadLog("create", $name, $password);
-        $this->users[$name] = array(
+        $this->users[$name] = ThreadSafeArray::fromArray([
             "role" => Role::USER->value,
             "password" => $password,
             "permissions" => [
                 "default" => true
             ]
-        );
+        ]);
         $this->lonaDB->getLogger()->user("User '".$name."' has been created");
         $this->save();
         return true;
@@ -243,7 +245,7 @@ class UserManager extends ThreadSafe
      * @param  string  $name  The username.
      * @return array The permissions of the user.
      */
-    public function getPermissions(string $name): array
+    public function getPermissions(string $name): ThreadSafeArray
     {
         //If the username is root, return an empty array -> Root is allowed to do anything
         if ($name === "root") {
@@ -339,13 +341,13 @@ class UserManager extends ThreadSafe
                 for($i = $this->logLevel; $i <= $lastAction; $i++) {
                     switch($log[$i]["action"]) {
                         case "create":
-                            $this->users[$log[$i]["name"]] = array(
+                            $this->users[$log[$i]["name"]] = ThreadSafeArray::fromArray([
                                 "role" => Role::DEFAULT->value,
                                 "password" => $log[$i]["data"],
                                 "permissions" => [
                                     "default" => true
                                 ]
-                            );
+                            ]);
                             break;
                         case "delete":
                             unset($this->users[$log[$i]["name"]]);

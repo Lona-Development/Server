@@ -36,7 +36,8 @@ class LonaFunction extends ThreadSafe
         // We are using an array.
         // Overwriting/defining a function inside eval didn't work for us
         // Our workaround is creating a class instance with a run function which is our Lona function
-        $function = "\$this->functions['" . $this->name . "'] = new class {\n";
+        $function = "use pmmp\\thread\\ThreadSafe;\n";
+        $function .= "\$this->functions['" . $this->name . "'] = new class extends ThreadSafe {\n";
         $function .= "public function run(\$LonaDB, \$data) {\n";
         $function .= $temp;
         $function .= "\n} \n};";

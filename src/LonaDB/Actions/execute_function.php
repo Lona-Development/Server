@@ -3,6 +3,7 @@
 use LonaDB\Enums\Event;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -22,7 +23,7 @@ return new class extends Action {
     {
         $name = $data['name'];
         $response = $lonaDB->getFunctionManager()->getFunction($name)->execute($lonaDB, $data, $client);
-        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_EXECUTE, ["name" => $name]);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::FUNCTION_EXECUTE->value, ThreadSafeArray::fromArray(["name" => $name]));
         return $this->sendSuccess($client, $data['process'], ["result" => $response]);
     }
 };

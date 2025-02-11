@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -39,8 +40,8 @@ return new class extends Action {
             return $this->sendError($client, ErrorCode::MISSING_VARIABLE, $data['process']);
         }
         $table->delete($data['variable']['name'], $username);
-        $lonaDB->getPluginManager()->runEvent($username, Event::VALUE_REMOVE,
-            ["table" => $tableName, "name" => $data['variable']['name']]);
+        $lonaDB->getPluginManager()->runEvent($username, Event::VALUE_REMOVE->value,
+            ThreadSafeArray::fromArray(["table" => $tableName, "name" => $data['variable']['name']]));
         return $this->sendSuccess($client, $data['process'], []);
     }
 };

@@ -7,6 +7,7 @@ enum Role: string
     case SUPERUSER = "superuser";
     case ADMIN = "administrator";
     case USER = "user";
+    case DEFAULT = "default";
 
     static function find(string $name): ?Role
     {
@@ -14,7 +15,7 @@ enum Role: string
             'superuser' => Role::SUPERUSER,
             'administrator' => Role::ADMIN,
             'user' => Role::USER,
-            default => null,
+            default => Role::DEFAULT
         };
     }
 

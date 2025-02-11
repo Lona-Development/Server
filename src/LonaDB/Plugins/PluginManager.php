@@ -142,7 +142,7 @@ class PluginManager extends ThreadSafe {
     }
 
     public function runEvent(string $executor, string $event, ThreadSafeArray $arguments): void {
-        foreach ($this->plugins as $plugin) {
+        foreach ($this->plugins as $pluginInstance) {
             $name = $arguments["name"];
             match ($event) {
                 "table_create"      => $pluginInstance->onTableCreate($executor, $name),

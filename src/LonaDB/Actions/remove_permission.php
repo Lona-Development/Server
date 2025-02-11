@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * This class implements the ActionInterface and uses the ActionTrait.
@@ -33,11 +34,11 @@ return new class extends Action {
         
         if(!Permission::findPermission($permissionName)) return $this->sendSuccess($client, $data['process'], []);
         $lonaDB->getUserManager()->removePermission($permissionUser, Permission::findPermission($permissionName));
-        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_REMOVE,
-            [
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::PERMISSION_REMOVE->value,
+            ThreadSafeArray::fromArray([
                 "user" => $permissionUser,
                 "name" => $permissionName
-            ]);
+            ]));
         return $this->sendSuccess($client, $data['process'], []);
     }
 };

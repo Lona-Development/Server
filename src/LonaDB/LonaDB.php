@@ -2,8 +2,6 @@
 
 namespace LonaDB;
 
-define('AES_256_CBC', 'aes-256-cbc');
-
 require '../vendor/autoload.php';
 
 use Exception;
@@ -145,7 +143,7 @@ class LonaDB extends ThreadSafe
         $this->logger->infoCache("Saving config.");
 
         //Create IV
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_256_CBC));
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         $save = array(
             "port" => $databasePort,
             "address" => str_replace("\n", "", $databaseAddress),
@@ -155,7 +153,7 @@ class LonaDB extends ThreadSafe
         );
 
         //Encrypt config
-        $encrypted = openssl_encrypt(json_encode($save), AES_256_CBC, $this->encryptionKey, 0, $iv);
+        $encrypted = openssl_encrypt(json_encode($save), 'aes-256-cbc', $this->encryptionKey, 0, $iv);
         //Save to configuration.lona
         file_put_contents("./configuration.lona", $encrypted.":".base64_encode($iv));
     }
@@ -231,6 +229,14 @@ class LonaDB extends ThreadSafe
     }
 
     /**
+     * @return string The encryption key used to decrypt/encrypt files.
+     */
+    public function getEncryptionKey(): string
+    {
+        return $this->encryptionKey;
+    }
+
+    /**
      * Encrypts the given data using the given key.
      *
      * @param  string  $data The data to encrypt.
@@ -239,8 +245,8 @@ class LonaDB extends ThreadSafe
      */
     public static function encrypt(string $data, string $key): string
     {
-        $iv = openssl_random_pseudo_bytes(\openssl_cipher_iv_length(AES_256_CBC));
-        return openssl_encrypt($data, AES_256_CBC, $key, 0, $iv).":".base64_encode($iv);
+        $iv = openssl_random_pseudo_bytes(\openssl_cipher_iv_length('aes-256-cbc'));
+        return openssl_encrypt($data, 'aes-256-cbc', $key, 0, $iv).":".base64_encode($iv);
     }
 
     /**
@@ -253,7 +259,7 @@ class LonaDB extends ThreadSafe
     public static function decrypt(string $data, string $key): string
     {
         $parts = explode(':', $data);
-        return openssl_decrypt($parts[0], AES_256_CBC, $key, 0, base64_decode($parts[1]));
+        return openssl_decrypt($parts[0], 'aes-256-cbc', $key, 0, base64_decode($parts[1]));
     }
 }
 

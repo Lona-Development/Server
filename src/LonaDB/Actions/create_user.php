@@ -5,6 +5,7 @@ use LonaDB\Enums\Event;
 use LonaDB\Enums\Permission;
 use LonaDB\Bases\Action;
 use LonaDB\LonaDB;
+use pmmp\thread\ThreadSafeArray;
 
 /**
  * Handles the creation of users in LonaDB by implementing the ActionInterface.
@@ -53,7 +54,7 @@ return new class extends Action {
         }
 
         $result = $userManager->createUser($username, $password);
-        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::USER_CREATE, ["name" => $username]);
+        $lonaDB->getPluginManager()->runEvent($data['login']['name'], Event::USER_CREATE->value, ThreadSafeArray::fromArray(["name" => $username]));
 
         if (!$result) {
             return $this->sendError($client, ErrorCode::USER_EXISTS, $processId);

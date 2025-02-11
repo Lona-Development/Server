@@ -134,7 +134,7 @@ class Table extends ThreadSafe
      */
     public function set(string $name, mixed $value, string $user): bool
     {
-        if (!$this->checkPermission($user, LonaDB::Permission::WRITE)) {
+        if (!$this->checkPermission($user, Permission::WRITE)) {
             return false;
         }
 
@@ -218,9 +218,12 @@ class Table extends ThreadSafe
         }
 
         foreach ($permissions as $permission) {
-            if ($this->permissions[$user][$permission->value]) {
-                return true;
+            if($this->permissions[$user]) {
+                if ($this->permissions[$user][$permission->value]) {
+                   return true;
+                }
             }
+            return false;
         }
         return false;
     }

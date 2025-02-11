@@ -112,6 +112,7 @@ class PluginBase extends Thread
      */
     final public function run(): void
     {
+        error_reporting(E_ERROR | E_PARSE);
         require __DIR__ . '/../../vendor/autoload.php';
         $this->loadClasses($this->getPhar());
         $this->onEnable();
