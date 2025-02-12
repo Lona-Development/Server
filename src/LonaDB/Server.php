@@ -133,7 +133,6 @@ class Server extends Thread
     private function handleData(string $dataString, mixed $client): void
     {
         try {
-            var_dump($dataString);
             $data = json_decode($dataString, true);
 
             if (!is_array($data) || !array_key_exists('action', $data)) {
@@ -168,8 +167,6 @@ class Server extends Thread
                 socket_write($client, $response);
                 return;
             }
-
-            var_dump($this->actions[$data['action']]);
 
             $this->actions[$data['action']]->run($this->lonaDB, $data, $client);
         } catch (Mixed $e) {

@@ -40,12 +40,9 @@ class PluginManager extends ThreadSafe {
             mkdir($pluginDir);
         }
         $plugins = scandir($pluginDir);
-
-        $this->lonaDB->getLogger()->info("Working with plugin folder $pluginDir");
-
+ 
         foreach ($plugins as $plugin) {
             if (str_ends_with($plugin, ".phar")){
-                $this->lonaDB->getLogger()->info("Found plugin $plugin");
                 $this->loadPluginPHAR($plugin);
                 $pluginsLoaded = true;
             }

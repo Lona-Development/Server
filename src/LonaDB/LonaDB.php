@@ -101,7 +101,7 @@ class LonaDB extends ThreadSafe
      *
      * @return string The version of the LonaDB server.
      */
-    public function getVersion(): string { return "5.0.1"; }
+    public function getVersion(): string { return "6.0.0"; }
 
     /**
      * Returns the base path of the LonaDB server.

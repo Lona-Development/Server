@@ -71,17 +71,18 @@ class TableManager extends ThreadSafe
      * @param  string  $user  The user to filter tables by (optional).
      * @return array The list of table names.
      */
-    public function listTables(string $user = ""): array
+    public function listTables(string $user = ""): ThreadSafeArray
     {
         $count = 0;
+        $tables = new ThreadSafeArray();
         /* @var Table $table */
         foreach ($this->tables as $table) {
-            if ($user == "" || $table->hasAnyPermission($user, [Permission::WRITE, Permission::READ])) {
+            if ($user == "" || $table->hasAnyPermission($user, ThreadSafeArray::fromArray([Permission::WRITE, Permission::READ]))) {
                 $tables[$count] = $table->name;
                 $count++;
             }
         }
-        return $tables ?? [];
+        return $tables;
     }
 
     /**

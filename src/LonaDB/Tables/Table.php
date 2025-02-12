@@ -88,7 +88,7 @@ class Table extends ThreadSafe
      *
      * @return array The data in the table.
      */
-    public function getData(): array
+    public function getData(): ThreadSafeArray
     {
         return $this->data;
     }
@@ -207,7 +207,7 @@ class Table extends ThreadSafe
      * @param  Permission[]  $permissions  The permissions to check.
      * @return bool Returns true if the user has the permission, false otherwise.
      */
-    public function hasAnyPermission(string $user, array $permissions): bool
+    public function hasAnyPermission(string $user, ThreadSafeArray $permissions): bool
     {
         $role = $this->lonaDB->getUserManager()->getRole($user);
         if (
@@ -245,7 +245,7 @@ class Table extends ThreadSafe
      *
      * @return array The table permissions.
      */
-    public function getPermissions(): array
+    public function getPermissions(): ThreadSafeArray
     {
         return $this->permissions;
     }
@@ -268,7 +268,12 @@ class Table extends ThreadSafe
 
         $this->writeAheadLog("addPermission", $name, $permission, $user);
 
-        $this->permissions[$name][$permission->value] = true;
+        $permissions = $this->permissions[$name];
+        $permissions[$permission->value] = true;
+        if(is_array($permissions)) 
+            $permissions = ThreadSafeArray::fromArray($permissions);
+
+        $this->permissions[$name] = $permissions;
         $this->save();
         return true;
     }
@@ -293,7 +298,7 @@ class Table extends ThreadSafe
         $this->writeAheadLog("removePermission", $name, $permission, $user);
 
         unset($this->permissions[$name][$permission->value]);
-        if ($this->permissions[$name] === array()) {
+        if ($this->permissions[$name] === new ThreadSafeArray()) {
             unset($this->permissions[$name]);
         }
         $this->save();

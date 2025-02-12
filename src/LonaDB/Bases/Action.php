@@ -24,7 +24,6 @@ class Action extends ThreadSafe
     final public function sendError(mixed $client, ErrorCode $errorCode, mixed $process): bool
     {
         $response = ["err" => $errorCode, 'success' => false, "process" => $process];
-        var_dump($response);
         $this->send($client, $response);
         return false;
     }
