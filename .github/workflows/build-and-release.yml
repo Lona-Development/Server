@@ -48,5 +48,4 @@ jobs:
             Build number: ${{ github.run_number }}
           files: ${{ env.PHAR_FILE }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}  # Using the Personal Access Token (PAT) stored in GitHub Secrets
