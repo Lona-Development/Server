@@ -26,7 +26,7 @@ jobs:
 
       - name: Run build script with custom PHP binary
         run: |
-          ./php-bin/bin/php7/bin/php ./build/build-phar.php
+          ./php-bin/bin/php7/bin/php -dphar.readonly=0 ./build/build-phar.php
 
       - name: Find PHAR file and extract version
         id: extract_version
