@@ -5,7 +5,6 @@ namespace LonaDB;
 use Exception;
 use LonaDB\Enums\ErrorCode;
 use pmmp\thread\Thread;
-use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 
 class Server extends Thread
@@ -169,8 +168,8 @@ class Server extends Thread
             }
 
             $this->actions[$data['action']]->run($this->lonaDB, $data, $client);
-        } catch (Mixed $e) {
-            $this->lonaDB->getLogger()->error($e->getMessage());
+        } catch (Exception $exception) {
+            $this->lonaDB->getLogger()->error($exception->getMessage());
         }
     }
 }

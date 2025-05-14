@@ -1,0 +1,52 @@
+name: Build and Release Phar
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download and extract custom PHP binary
+        run: |
+          curl -L -o php-custom.tar.gz https://github.com/Lona-Development/PHP-Binaries/releases/download/php-8.2-latest/PHP-8.2-Linux-x86_64.tar.gz
+          mkdir -p php-bin
+          tar -xzf php-custom.tar.gz -C php-bin
+
+      - name: Install Composer using custom PHP binary
+        run: |
+          curl -sS https://getcomposer.org/installer -o composer-setup.php
+          ./php-bin/bin/php7/bin/php composer-setup.php --install-dir=php-bin --filename=composer
+
+      - name: Run build script with custom PHP binary
+        run: |
+          ./php-bin/bin/php7/bin/php ./build/build-phar.php
+
+      - name: Find PHAR file and extract version
+        id: extract_version
+        run: |
+          FILE=$(find ./build/release -name '*.phar' | head -n 1)
+          echo "PHAR_FILE=$FILE" >> $GITHUB_ENV
+          VERSION=$(basename "$FILE" | sed -n 's/.*-\(.*\)-release\.phar/\1/p')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: LonaDB v${{ env.VERSION }}
+          body: |
+            ✅ At the time of publication, this version is recommended for LonaDB production servers.
+            Built by: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Build number: ${{ github.run_number }}
+          files: ${{ env.PHAR_FILE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -61,8 +61,31 @@ class LonaDB extends ThreadSafe
                 $this->logger->infoCache("Loading config.");
                 
                 if(!$decrypted) {
-                    echo "Encryption key does not match the existing configuration file. Exiting.\n";
-                    exit();
+                    $this->logger->errorCache("Failed to decrypt the configuration file.");
+
+                    //Ask user for the hostname of the machine the config was created on
+                    $oldHostname = str_replace("\n", "", $this->readInput("Hostname of the machine the config was created on"));
+                    $hash = hash('sha256', $oldHostname, true);
+                    $decrypted = LonaDB::decrypt(file_get_contents("configuration.lona"), $hash);
+
+                    if(!$decrypted) {
+                        $this->logger->errorCache("Failed to decrypt the configuration file.");
+                        //Ask user for a encryptionKey
+                        $key = str_replace("\n", "", $this->readInput("Encryption key (before v6.0.0)"));
+                        $decrypted = LonaDB::decrypt(file_get_contents("configuration.lona"), $key);
+
+                        if(!$decrypted) {
+                            $this->logger->errorCache("Failed to decrypt the configuration file.");
+                            exit();
+                        }
+                    }else $this->logger->infoCache("Decrypted configuration file with the old hostname.");
+                    //Save the config with the new key
+                    $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+                    $save = json_decode($decrypted, true);
+                    
+                    $encrypted = openssl_encrypt(json_encode($save), 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+                    file_put_contents("./configuration.lona", $encrypted.":".base64_encode($iv));
+                    $this->logger->infoCache("Saved configuration file with the new hostname.");
                 }
 
                 $this->config = ThreadSafeArray::fromArray(json_decode($decrypted, true));
@@ -263,13 +286,7 @@ class LonaDB extends ThreadSafe
     }
 }
 
-//Ask for the EncryptionKey
-echo "Encryption key:\n";
-$keyHandle = fopen("php://stdin", "r");
-$key = fgets($keyHandle);
-fclose($keyHandle);
+$keyMaterial = gethostname();
+$key = hash('sha256', $keyMaterial, true);
 
-$encryptionKey = str_replace("\n", "", $key);
-unset($key);
-
-new LonaDB($encryptionKey);
+new LonaDB($key);

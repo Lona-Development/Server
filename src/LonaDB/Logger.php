@@ -68,7 +68,19 @@ class Logger extends ThreadSafe
     public function infoCache(string $message): void
     {
         $log = "[INFO] ".$message."\n";
-        echo($log);
+        echo("\033[34m".$log);
+        $this->infoCache = $this->infoCache.date("Y-m-d h:i:s").' '.$log;
+    }
+
+    /**
+     * Logs an error message to the terminal and caches it.
+     *
+     * @param  string  $message  The error message.
+     */
+    public function errorCache(string $message): void
+    {
+        $log = "[ERROR] ".$message."\n";
+        echo("\033[31m".$log."\e[0m");
         $this->infoCache = $this->infoCache.date("Y-m-d h:i:s").' '.$log;
     }
 
