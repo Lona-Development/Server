@@ -48,7 +48,7 @@ class Table extends ThreadSafe
                 $this->logLevel = 0;
                 $logFile = fopen("./data/wal/".$this->file.".lona", 'w');
 
-                if ($logFile === false) {
+                if (!$logFile) {
                     throw new \Exception("Failed to create write-ahead log file for table '".$this->file."'.");
                 }
 
@@ -77,6 +77,23 @@ class Table extends ThreadSafe
             $this->permissions = new ThreadSafeArray();
             $this->owner = $owner;
             $this->logLevel = 0;
+
+            $logFile = fopen("./data/wal/".$this->file.".lona", 'w');
+            if (!$logFile) {
+                throw new \Exception("Failed to create write-ahead log file for table '".$this->file."'.");
+            }
+            if (!flock($logFile, LOCK_EX)) {
+                fclose($logFile);
+                throw new \Exception("Failed to acquire lock on the write-ahead log file for table '".$this->file."'.");
+            }
+            if (fwrite($logFile, LonaDB::encrypt(json_encode([]), $this->lonaDB->config["encryptionKey"])) === false) {
+                flock($logFile, LOCK_UN);
+                fclose($logFile);
+                throw new \Exception("Failed to write to the write-ahead log file for table '".$this->file."'.");
+            }
+            flock($logFile, LOCK_UN);
+            fclose($logFile);
+
             $this->save();
         }
 
@@ -322,10 +339,12 @@ class Table extends ThreadSafe
      */
     public function checkWriteAheadLog(): void {
         try {
-            $logFile = fopen("./data/wal/".$this->file.".lona", 'r');
-            if (!$logFile) {
+            file_put_contents("./data/wal/".$this->file.".lona", file_get_contents("./data/wal/".$this->file.".lona"));
+            if (file_get_contents("./data/wal/".$this->file.".lona") === "") {
                 throw new \Exception("Failed to open write-ahead log file for table '".$this->file."'.");
             }
+
+            $logFile = fopen("./data/wal/".$this->file.".lona", 'r');
 
             if (!flock($logFile, LOCK_EX)) {
                 fclose($logFile);

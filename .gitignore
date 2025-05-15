@@ -1,5 +1,6 @@
 build/*
 src/vendor/
+src/LonaDB/build_config.json
 run
 build-phar
 .idea

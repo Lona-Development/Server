@@ -18,6 +18,7 @@ class LonaDB extends ThreadSafe
 {
     public ThreadSafeArray $config;
     private string $encryptionKey;
+    private string $version;
 
     private Logger $logger;
     private Server $server;
@@ -37,11 +38,28 @@ class LonaDB extends ThreadSafe
         $this->logger = new Logger($this);
         $run = false;
 
+
+        //list all files in ..
+        $files = scandir(__DIR__ . "/../");
+        foreach ($files as $file) {
+            if (is_dir($file)) {
+                continue;
+            }
+            if (pathinfo($file, PATHINFO_EXTENSION) === "phar") {
+                $this->version = pathinfo($file, PATHINFO_FILENAME);
+                $this->logger->infoCache("Running from Phar: " . $file);
+                break;
+            }
+        }
+
+        $buildConfig = json_decode(file_get_contents(__DIR__ . "/build_config.json"), true);
+        var_dump($buildConfig);
+
         try {
             echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
             error_reporting(E_ERROR | E_PARSE);
 
-            $this->logger->infoCache("LonaDB v5.0.0");
+            $this->logger->infoCache("LonaDB v" . $buildConfig["version"]);
             $this->logger->infoCache("Looking for config.");
 
             file_put_contents("configuration.lona", file_get_contents("configuration.lona"));
@@ -124,7 +142,7 @@ class LonaDB extends ThreadSafe
      *
      * @return string The version of the LonaDB server.
      */
-    public function getVersion(): string { return "6.0.0"; }
+    public function getVersion(): string { return $this->version; }
 
     /**
      * Returns the base path of the LonaDB server.

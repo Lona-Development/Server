@@ -4,15 +4,18 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9b5f90876b6bf7a56a75bddb50074efe",
+    "content-hash": "077f88ca486748e0f2e5389d1c6ce013",
     "packages": [],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
-    "platform-dev": [],
+    "platform": {
+        "ext-sockets": "*",
+        "ext-openssl": "*"
+    },
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
